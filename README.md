@@ -1,52 +1,54 @@
 # ClipGrid
 
-Native macOS-App auf Basis von SwiftUI, die mehrere Videos einliest und pro Video eine Videovorschau als `JPG` oder `PNG` exportiert.
+This is a vibe-coding project. I do not plan to review pull requests or handle issues for this repository.
+
+ClipGrid is a native macOS app built with SwiftUI that imports multiple videos and exports a video preview image for each one as `JPG` or `PNG`.
 
 ![ClipGrid Screenshot](screen.png)
 
-## Funktionen
+## Features
 
-- Mehrere Videos gleichzeitig laden
-- Drag-and-Drop und Dateiauswahl fuer Videoimporte
-- Videovorschauen mit konfigurierbarem Grid und Zeitstempeln pro Thumbnail
-- Metadaten im Header der Videovorschau optional ein- und ausblendbar
-- Konfigurierbares Grid mit Spalten, Zeilen, Thumbnail-Größe und Abstand
-- Einstellbare Hintergrundfarbe
-- Persistente Einstellungen ueber App-Neustarts hinweg
-- Deutsche und englische Lokalisierung
-- Export aller geladenen Videos in einem Durchlauf
+- Import multiple videos at once
+- Drag and drop plus file picker support for video import
+- Export video preview sheets with a configurable grid and timestamps on every thumbnail
+- Toggle metadata in the preview header on or off
+- Configure columns, rows, thumbnail size, and spacing
+- Customize the background color
+- Persist settings across app restarts
+- German and English localization
+- Export all loaded videos in one run
 
-## Voraussetzungen
+## Requirements
 
-- macOS 13 oder neuer
-- Xcode Command Line Tools oder Xcode mit Swift 6
+- macOS 13 or newer
+- Xcode Command Line Tools or Xcode with Swift 6
 
-## Entwicklung
+## Development
 
 ```bash
 swift build
 swift run
 ```
 
-Alternativ kann `Package.swift` direkt in Xcode geöffnet werden.
+You can also open `Package.swift` directly in Xcode.
 
-## Projektstruktur
+## Project Structure
 
-- `Sources/ClipGrid`: SwiftUI-App, ViewModels, Renderer und Services
-- `Sources/ClipGrid/Resources`: lokalisierte `Localizable.strings`
-- `Resources/Info.plist`: Bundle-Metadaten fuer die gepackte App
-- `Scripts/package-app.sh`: erzeugt das native `.app`-Bundle
-- `icon.png`: Quellbild fuer das App-Icon
+- `Sources/ClipGrid`: SwiftUI app, view models, renderer, and services
+- `Sources/ClipGrid/Resources`: localized `Localizable.strings`
+- `Resources/Info.plist`: bundle metadata for the packaged app
+- `Scripts/package-app.sh`: builds the native `.app` bundle
+- `icon.png`: source image for the app icon
 
-## App-Bundle erzeugen
+## Build the App Bundle
 
 ```bash
 bash Scripts/package-app.sh
 ```
 
-Danach liegt die native macOS-App als `dist/ClipGrid.app` vor.
+After that, the native macOS app will be available at `dist/ClipGrid.app`.
 
-## Hinweise
+## Notes
 
-- Das App-Icon wird beim Packaging aus `icon.png` erzeugt.
-- Die Exportbilder erhalten denselben Dateinamen wie das Video, nur mit der gewaehlten Bildendung.
+- The app icon is generated from `icon.png` during packaging.
+- Exported images use the same base filename as the video, with the selected image extension.
