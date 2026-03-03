@@ -6,6 +6,9 @@ import UniformTypeIdentifiers
 @MainActor
 final class AppViewModel: ObservableObject {
     private static let maxConcurrentImports = 4
+    private static let supportedVideoExtensions = [
+        "mp4", "mov", "m4v", "avi", "mkv", "webm"
+    ]
 
     @Published var videos: [VideoItem] = []
     @Published var selectedVideoID: UUID?
@@ -33,12 +36,20 @@ final class AppViewModel: ObservableObject {
         return formatter
     }()
 
-    let supportedDropTypeIdentifiers = [
-        UTType.fileURL.identifier,
-        UTType.movie.identifier,
-        UTType.mpeg4Movie.identifier,
-        UTType.quickTimeMovie.identifier
-    ]
+    let supportedDropTypeIdentifiers: [String] = {
+        var identifiers = [
+            UTType.fileURL.identifier,
+            UTType.movie.identifier,
+            UTType.mpeg4Movie.identifier,
+            UTType.quickTimeMovie.identifier
+        ]
+
+        identifiers.append(
+            contentsOf: supportedVideoExtensions.compactMap { UTType(filenameExtension: $0)?.identifier }
+        )
+
+        return Array(Set(identifiers))
+    }()
 
     var selectedVideo: VideoItem? {
         videos.first(where: { $0.id == selectedVideoID }) ?? videos.first
@@ -53,7 +64,8 @@ final class AppViewModel: ObservableObject {
         let panel = NSOpenPanel()
         panel.allowsMultipleSelection = true
         panel.canChooseDirectories = false
-        panel.allowedContentTypes = [.movie, .mpeg4Movie, .quickTimeMovie]
+        panel.allowedContentTypes = supportedVideoContentTypes
+        panel.allowedFileTypes = Self.supportedVideoExtensions
 
         guard panel.runModal() == .OK else { return }
         Task {
@@ -359,10 +371,21 @@ final class AppViewModel: ObservableObject {
     }
 
     private static func isSupportedVideoURL(_ url: URL) -> Bool {
+        let fileExtension = url.pathExtension.lowercased()
+        if supportedVideoExtensions.contains(fileExtension) {
+            return true
+        }
+
         guard let type = UTType(filenameExtension: url.pathExtension) else {
             return false
         }
         return type.conforms(to: .movie) || type.conforms(to: .video)
+    }
+
+    private var supportedVideoContentTypes: [UTType] {
+        var contentTypes: [UTType] = [.movie, .mpeg4Movie, .quickTimeMovie]
+        contentTypes.append(contentsOf: Self.supportedVideoExtensions.compactMap { UTType(filenameExtension: $0) })
+        return Array(Set(contentTypes))
     }
 }
 

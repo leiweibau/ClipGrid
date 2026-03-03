@@ -31,6 +31,13 @@ enum VideoProcessingError: LocalizedError {
 }
 
 enum VideoProcessingService {
+    private static let ffmpegPreferredExtensions: Set<String> = ["mkv", "avi", "webm"]
+    private static let toolSearchPaths = [
+        "/usr/local/bin",
+        "/opt/homebrew/bin",
+        "/usr/bin"
+    ]
+
     static func loadMetadata(for url: URL) async throws -> VideoMetadata {
         let values = try url.resourceValues(forKeys: [.fileSizeKey])
         let bytes = Int64(values.fileSize ?? 0)
@@ -40,14 +47,22 @@ enum VideoProcessingService {
     }
 
     static func loadRenderMetadata(for url: URL) async throws -> VideoRenderMetadata {
-        let asset = AVAsset(url: url)
-        let duration = try await asset.load(.duration)
-        let tracks = try await asset.loadTracks(withMediaType: .video)
-        let resolution = try await resolvedVideoSize(from: tracks.first)
-        return VideoRenderMetadata(
-            duration: duration.seconds.isFinite ? duration.seconds : 0,
-            resolution: resolution
-        )
+        if prefersFFmpeg(for: url) {
+            return try loadRenderMetadataWithFFmpeg(for: url)
+        }
+
+        do {
+            let asset = AVAsset(url: url)
+            let duration = try await asset.load(.duration)
+            let tracks = try await asset.loadTracks(withMediaType: .video)
+            let resolution = try await resolvedVideoSize(from: tracks.first)
+            return VideoRenderMetadata(
+                duration: duration.seconds.isFinite ? duration.seconds : 0,
+                resolution: resolution
+            )
+        } catch {
+            return try loadRenderMetadataWithFFmpeg(for: url)
+        }
     }
 
     static func generateThumbnails(
@@ -55,41 +70,49 @@ enum VideoProcessingService {
         count: Int,
         maxSize: CGSize
     ) async throws -> [ThumbnailFrame] {
-        let asset = AVAsset(url: url)
-        let duration = try await asset.load(.duration)
-        let seconds = max(duration.seconds, 0.1)
-        let generator = AVAssetImageGenerator(asset: asset)
-        generator.maximumSize = maxSize
-        generator.appliesPreferredTrackTransform = true
-        let toleranceSeconds = min(max(seconds / Double(max(count, 1)) / 3, 0.1), 2.0)
-        let tolerance = CMTime(seconds: toleranceSeconds, preferredTimescale: 600)
-        generator.requestedTimeToleranceBefore = tolerance
-        generator.requestedTimeToleranceAfter = tolerance
+        if prefersFFmpeg(for: url) {
+            return try generateThumbnailsWithFFmpeg(for: url, count: count, maxSize: maxSize)
+        }
 
-        let timestamps = frameTimes(duration: seconds, count: count)
-        var thumbnails: [ThumbnailFrame] = []
-        thumbnails.reserveCapacity(timestamps.count)
+        do {
+            let asset = AVAsset(url: url)
+            let duration = try await asset.load(.duration)
+            let seconds = max(duration.seconds, 0.1)
+            let generator = AVAssetImageGenerator(asset: asset)
+            generator.maximumSize = maxSize
+            generator.appliesPreferredTrackTransform = true
+            let toleranceSeconds = min(max(seconds / Double(max(count, 1)) / 3, 0.1), 2.0)
+            let tolerance = CMTime(seconds: toleranceSeconds, preferredTimescale: 600)
+            generator.requestedTimeToleranceBefore = tolerance
+            generator.requestedTimeToleranceAfter = tolerance
 
-        for second in timestamps {
-            let time = CMTime(seconds: second, preferredTimescale: 600)
-            do {
-                let image = try generator.copyCGImage(at: time, actualTime: nil)
-                thumbnails.append(
-                    ThumbnailFrame(
-                        image: NSImage(cgImage: image, size: .zero),
-                        timestamp: second
+            let timestamps = frameTimes(duration: seconds, count: count)
+            var thumbnails: [ThumbnailFrame] = []
+            thumbnails.reserveCapacity(timestamps.count)
+
+            for second in timestamps {
+                let time = CMTime(seconds: second, preferredTimescale: 600)
+                do {
+                    let image = try generator.copyCGImage(at: time, actualTime: nil)
+                    thumbnails.append(
+                        ThumbnailFrame(
+                            image: NSImage(cgImage: image, size: .zero),
+                            timestamp: second
+                        )
                     )
-                )
-            } catch {
-                continue
+                } catch {
+                    continue
+                }
             }
-        }
 
-        guard !thumbnails.isEmpty else {
-            throw VideoProcessingError.noFramesGenerated
-        }
+            guard !thumbnails.isEmpty else {
+                throw VideoProcessingError.noFramesGenerated
+            }
 
-        return thumbnails
+            return thumbnails
+        } catch {
+            return try generateThumbnailsWithFFmpeg(for: url, count: count, maxSize: maxSize)
+        }
     }
 
     private static func frameTimes(duration: TimeInterval, count: Int) -> [TimeInterval] {
@@ -111,6 +134,134 @@ enum VideoProcessingService {
         let transform = try await track.load(.preferredTransform)
         return naturalSize.applying(transform).absoluteSize
     }
+
+    private static func prefersFFmpeg(for url: URL) -> Bool {
+        ffmpegPreferredExtensions.contains(url.pathExtension.lowercased())
+    }
+
+    private static func loadRenderMetadataWithFFmpeg(for url: URL) throws -> VideoRenderMetadata {
+        let data = try runTool("ffprobe", arguments: [
+            "-v", "error",
+            "-select_streams", "v:0",
+            "-show_entries", "stream=width,height:format=duration",
+            "-of", "json",
+            url.path
+        ])
+
+        let response = try JSONDecoder().decode(FFprobeResponse.self, from: data)
+        let duration = Double(response.format?.duration ?? "") ?? 0
+        let stream = response.streams.first
+        return VideoRenderMetadata(
+            duration: duration,
+            resolution: CGSize(width: stream?.width ?? 0, height: stream?.height ?? 0)
+        )
+    }
+
+    private static func generateThumbnailsWithFFmpeg(
+        for url: URL,
+        count: Int,
+        maxSize: CGSize
+    ) throws -> [ThumbnailFrame] {
+        let metadata = try loadRenderMetadataWithFFmpeg(for: url)
+        let timestamps = frameTimes(duration: max(metadata.duration, 0.1), count: count)
+        let tempDirectory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try FileManager.default.createDirectory(at: tempDirectory, withIntermediateDirectories: true)
+        defer {
+            try? FileManager.default.removeItem(at: tempDirectory)
+        }
+
+        var thumbnails: [ThumbnailFrame] = []
+        thumbnails.reserveCapacity(timestamps.count)
+
+        let width = Int(maxSize.width.rounded())
+        let height = Int(maxSize.height.rounded())
+        let scaleFilter = "scale=w=\(width):h=\(height):force_original_aspect_ratio=decrease"
+
+        for (index, timestamp) in timestamps.enumerated() {
+            let outputURL = tempDirectory.appendingPathComponent("thumb-\(index).png")
+            _ = try runTool("ffmpeg", arguments: [
+                "-y",
+                "-loglevel", "error",
+                "-ss", String(format: "%.3f", timestamp),
+                "-i", url.path,
+                "-frames:v", "1",
+                "-vf", scaleFilter,
+                outputURL.path
+            ])
+
+            guard let image = NSImage(contentsOf: outputURL) else { continue }
+            thumbnails.append(ThumbnailFrame(image: image, timestamp: timestamp))
+        }
+
+        guard !thumbnails.isEmpty else {
+            throw VideoProcessingError.noFramesGenerated
+        }
+
+        return thumbnails
+    }
+
+    @discardableResult
+    private static func runTool(_ launchPath: String, arguments: [String]) throws -> Data {
+        let process = Process()
+        process.executableURL = try resolvedToolURL(named: launchPath)
+        process.arguments = arguments
+
+        let outputPipe = Pipe()
+        let errorPipe = Pipe()
+        process.standardOutput = outputPipe
+        process.standardError = errorPipe
+
+        try process.run()
+        process.waitUntilExit()
+
+        let outputData = outputPipe.fileHandleForReading.readDataToEndOfFile()
+        let errorData = errorPipe.fileHandleForReading.readDataToEndOfFile()
+
+        guard process.terminationStatus == 0 else {
+            throw NSError(
+                domain: "ClipGrid.FFmpeg",
+                code: Int(process.terminationStatus),
+                userInfo: [
+                    NSLocalizedDescriptionKey: String(data: errorData, encoding: .utf8) ?? AppStrings.unreadableVideo
+                ]
+            )
+        }
+
+        return outputData
+    }
+
+    private static func resolvedToolURL(named toolName: String) throws -> URL {
+        let fileManager = FileManager.default
+
+        for basePath in toolSearchPaths {
+            let candidate = URL(fileURLWithPath: basePath).appendingPathComponent(toolName)
+            if fileManager.isExecutableFile(atPath: candidate.path) {
+                return candidate
+            }
+        }
+
+        throw NSError(
+            domain: "ClipGrid.FFmpeg",
+            code: 127,
+            userInfo: [
+                NSLocalizedDescriptionKey: "\(toolName) not found"
+            ]
+        )
+    }
+}
+
+private struct FFprobeResponse: Decodable {
+    struct Stream: Decodable {
+        let width: Double?
+        let height: Double?
+    }
+
+    struct Format: Decodable {
+        let duration: String?
+    }
+
+    let streams: [Stream]
+    let format: Format?
 }
 
 private extension CGSize {

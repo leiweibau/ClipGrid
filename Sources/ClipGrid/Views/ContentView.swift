@@ -4,6 +4,7 @@ struct ContentView: View {
     @ObservedObject var viewModel: AppViewModel
     @ObservedObject private var settings: AppSettings
     @State private var isDropTargeted = false
+    @StateObject private var toolbarObserver = ToolbarDisplayModeObserver()
 
     init(viewModel: AppViewModel) {
         self.viewModel = viewModel
@@ -102,7 +103,11 @@ struct ContentView: View {
                 Button {
                     viewModel.clearAll()
                 } label: {
-                    Image(systemName: "trash.circle")
+                    toolbarButtonLabel(
+                        title: AppStrings.clearAllHelp,
+                        systemImage: "trash.circle",
+                        weight: .regular
+                    )
                 }
                 .help(AppStrings.clearAllHelp)
                 .disabled(viewModel.videos.isEmpty || viewModel.isRendering || viewModel.isExporting)
@@ -114,8 +119,12 @@ struct ContentView: View {
                         await viewModel.startRendering()
                     }
                 } label: {
-                    Image(systemName: "play.fill")
-                        .foregroundStyle(.green)
+                    toolbarButtonLabel(
+                        title: AppStrings.startHelp,
+                        systemImage: "play.fill",
+                        weight: .semibold,
+                        tint: .green
+                    )
                 }
                 .help(AppStrings.startHelp)
                 .disabled(viewModel.videos.isEmpty || viewModel.isRendering || viewModel.isExporting)
@@ -141,6 +150,45 @@ struct ContentView: View {
             isTargeted: $isDropTargeted
         ) { providers in
             viewModel.handleDrop(providers: providers)
+        }
+        .background(
+            ToolbarDisplayModeReader(observer: toolbarObserver)
+                .frame(width: 0, height: 0)
+        )
+    }
+
+    private var toolbarIconSize: CGFloat {
+        switch toolbarObserver.displayMode {
+        case .iconOnly:
+            return 24
+        case .iconAndLabel, .labelOnly, .default:
+            return 14
+        @unknown default:
+            return 14
+        }
+    }
+
+    @ViewBuilder
+    private func toolbarButtonLabel(
+        title: String,
+        systemImage: String,
+        weight: Font.Weight,
+        tint: Color = .primary
+    ) -> some View {
+        if toolbarObserver.displayMode == .iconOnly {
+            Image(systemName: systemImage)
+                .resizable()
+                .scaledToFit()
+                .frame(width: toolbarIconSize, height: toolbarIconSize)
+                .foregroundStyle(tint)
+        } else {
+            Label {
+                Text(title)
+            } icon: {
+                Image(systemName: systemImage)
+                    .font(.system(size: toolbarIconSize, weight: weight))
+                    .foregroundStyle(tint)
+            }
         }
     }
 }
