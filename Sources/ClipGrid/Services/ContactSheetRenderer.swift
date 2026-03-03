@@ -6,6 +6,7 @@ struct ContactSheetMetadataVisibility {
     let showDuration: Bool
     let showFileSize: Bool
     let showResolution: Bool
+    let showTimestamp: Bool
 }
 
 struct ContactSheetRenderOptions {
@@ -14,6 +15,12 @@ struct ContactSheetRenderOptions {
     let spacing: CGFloat
     let thumbnailSize: CGSize
     let backgroundColor: NSColor
+    let metadataTextColor: NSColor
+    let fileNameFontSize: CGFloat
+    let durationFontSize: CGFloat
+    let fileSizeFontSize: CGFloat
+    let resolutionFontSize: CGFloat
+    let timestampFontSize: CGFloat
     let metadataVisibility: ContactSheetMetadataVisibility
 }
 
@@ -28,7 +35,7 @@ enum ContactSheetRenderer {
     ) -> NSImage {
         let horizontalPadding: CGFloat = 28
         let verticalPadding: CGFloat = 28
-        let headerHeight = calculatedHeaderHeight(for: options.metadataVisibility)
+        let headerHeight = calculatedHeaderHeight(for: options)
         let gridWidth =
             CGFloat(options.columns) * options.thumbnailSize.width +
             CGFloat(max(options.columns - 1, 0)) * options.spacing
@@ -47,55 +54,69 @@ enum ContactSheetRenderer {
         options.backgroundColor.setFill()
         NSBezierPath(rect: NSRect(origin: .zero, size: canvasSize)).fill()
 
-        let textColor = preferredTextColor(for: options.backgroundColor)
-        let secondaryColor = textColor.withAlphaComponent(0.72)
+        let titleColor = preferredTextColor(for: options.backgroundColor)
+        let metadataColor = options.metadataTextColor
+        let secondaryColor = metadataColor.withAlphaComponent(0.82)
 
         let titleAttributes: [NSAttributedString.Key: Any] = [
-            .font: NSFont.systemFont(ofSize: 26, weight: .semibold),
-            .foregroundColor: textColor
+            .font: NSFont.systemFont(ofSize: options.fileNameFontSize, weight: .semibold),
+            .foregroundColor: titleColor
         ]
-        let metaAttributes: [NSAttributedString.Key: Any] = [
-            .font: NSFont.systemFont(ofSize: 14, weight: .medium),
+        let durationAttributes: [NSAttributedString.Key: Any] = [
+            .font: NSFont.systemFont(ofSize: options.durationFontSize, weight: .medium),
+            .foregroundColor: secondaryColor
+        ]
+        let fileSizeAttributes: [NSAttributedString.Key: Any] = [
+            .font: NSFont.systemFont(ofSize: options.fileSizeFontSize, weight: .medium),
+            .foregroundColor: secondaryColor
+        ]
+        let resolutionAttributes: [NSAttributedString.Key: Any] = [
+            .font: NSFont.systemFont(ofSize: options.resolutionFontSize, weight: .medium),
             .foregroundColor: secondaryColor
         ]
 
-        var currentY = canvasSize.height - verticalPadding - 36
+        var currentY = canvasSize.height - verticalPadding
 
         if options.metadataVisibility.showFileName {
+            let lineHeight = lineHeight(for: titleAttributes)
             let titleRect = NSRect(
                 x: horizontalPadding,
-                y: currentY,
+                y: currentY - lineHeight,
                 width: canvasSize.width - horizontalPadding * 2,
-                height: 32
+                height: lineHeight
             )
             title.draw(in: titleRect, withAttributes: titleAttributes)
-            currentY -= 26
+            currentY -= lineHeight + 6
         }
 
-        let primaryMetadata = [options.metadataVisibility.showDuration ? durationText : nil,
-                               options.metadataVisibility.showFileSize ? fileSizeText : nil]
-            .compactMap { $0 }
-            .joined(separator: "  •  ")
+        let primaryMetadata = primaryMetadataString(
+            durationText: options.metadataVisibility.showDuration ? durationText : nil,
+            fileSizeText: options.metadataVisibility.showFileSize ? fileSizeText : nil,
+            durationAttributes: durationAttributes,
+            fileSizeAttributes: fileSizeAttributes
+        )
 
-        if !primaryMetadata.isEmpty {
+        if primaryMetadata.length > 0 {
+            let lineHeight = max(lineHeight(for: durationAttributes), lineHeight(for: fileSizeAttributes))
             let metaRect = NSRect(
                 x: horizontalPadding,
-                y: currentY,
+                y: currentY - lineHeight,
                 width: canvasSize.width - horizontalPadding * 2,
-                height: 22
+                height: lineHeight
             )
-            primaryMetadata.draw(in: metaRect, withAttributes: metaAttributes)
-            currentY -= 22
+            primaryMetadata.draw(in: metaRect)
+            currentY -= lineHeight + 4
         }
 
         if options.metadataVisibility.showResolution {
+            let lineHeight = lineHeight(for: resolutionAttributes)
             let detailRect = NSRect(
                 x: horizontalPadding,
-                y: currentY,
+                y: currentY - lineHeight,
                 width: canvasSize.width - horizontalPadding * 2,
-                height: 22
+                height: lineHeight
             )
-            resolutionText.draw(in: detailRect, withAttributes: metaAttributes)
+            resolutionText.draw(in: detailRect, withAttributes: resolutionAttributes)
         }
 
         for row in 0..<options.rows {
@@ -110,7 +131,12 @@ enum ContactSheetRenderer {
                 placeholder.fill()
 
                 guard index < thumbnails.count else { continue }
-                drawThumbnail(thumbnails[index], in: frame)
+                drawThumbnail(
+                    thumbnails[index],
+                    in: frame,
+                    timestampFontSize: options.timestampFontSize,
+                    showTimestamp: options.metadataVisibility.showTimestamp
+                )
             }
         }
 
@@ -142,7 +168,12 @@ enum ContactSheetRenderer {
         )
     }
 
-    private static func drawThumbnail(_ thumbnail: ThumbnailFrame, in frame: NSRect) {
+    private static func drawThumbnail(
+        _ thumbnail: ThumbnailFrame,
+        in frame: NSRect,
+        timestampFontSize: CGFloat,
+        showTimestamp: Bool
+    ) {
         let image = thumbnail.image
         let sourceSize = image.size
         guard sourceSize.width > 0, sourceSize.height > 0 else { return }
@@ -160,13 +191,15 @@ enum ContactSheetRenderer {
         let clipPath = NSBezierPath(roundedRect: frame, xRadius: 10, yRadius: 10)
         clipPath.addClip()
         image.draw(in: drawRect)
-        drawTimestamp(timestampText(for: thumbnail.timestamp), in: frame)
+        if showTimestamp {
+            drawTimestamp(timestampText(for: thumbnail.timestamp), in: frame, fontSize: timestampFontSize)
+        }
         NSGraphicsContext.restoreGraphicsState()
     }
 
-    private static func drawTimestamp(_ text: String, in frame: NSRect) {
+    private static func drawTimestamp(_ text: String, in frame: NSRect, fontSize: CGFloat) {
         let attributes: [NSAttributedString.Key: Any] = [
-            .font: NSFont.monospacedDigitSystemFont(ofSize: 12, weight: .semibold),
+            .font: NSFont.monospacedDigitSystemFont(ofSize: fontSize, weight: .semibold),
             .foregroundColor: NSColor.white
         ]
         let textSize = text.size(withAttributes: attributes)
@@ -200,12 +233,43 @@ enum ContactSheetRenderer {
         return String(format: "%02d:%02d", minutes, secs)
     }
 
-    private static func calculatedHeaderHeight(for visibility: ContactSheetMetadataVisibility) -> CGFloat {
+    private static func calculatedHeaderHeight(for options: ContactSheetRenderOptions) -> CGFloat {
         var height: CGFloat = 18
-        if visibility.showFileName { height += 30 }
-        if visibility.showDuration || visibility.showFileSize { height += 22 }
-        if visibility.showResolution { height += 22 }
+        if options.metadataVisibility.showFileName { height += options.fileNameFontSize + 10 }
+        if options.metadataVisibility.showDuration || options.metadataVisibility.showFileSize {
+            height += max(options.durationFontSize, options.fileSizeFontSize) + 8
+        }
+        if options.metadataVisibility.showResolution { height += options.resolutionFontSize + 6 }
         return max(height, 18)
+    }
+
+    private static func primaryMetadataString(
+        durationText: String?,
+        fileSizeText: String?,
+        durationAttributes: [NSAttributedString.Key: Any],
+        fileSizeAttributes: [NSAttributedString.Key: Any]
+    ) -> NSAttributedString {
+        let result = NSMutableAttributedString()
+
+        if let durationText {
+            result.append(NSAttributedString(string: durationText, attributes: durationAttributes))
+        }
+
+        if durationText != nil, fileSizeText != nil {
+            let separatorAttributes = durationAttributes.merging(fileSizeAttributes) { current, _ in current }
+            result.append(NSAttributedString(string: "  •  ", attributes: separatorAttributes))
+        }
+
+        if let fileSizeText {
+            result.append(NSAttributedString(string: fileSizeText, attributes: fileSizeAttributes))
+        }
+
+        return result
+    }
+
+    private static func lineHeight(for attributes: [NSAttributedString.Key: Any]) -> CGFloat {
+        guard let font = attributes[.font] as? NSFont else { return 18 }
+        return ceil(font.ascender - font.descender + font.leading)
     }
 
     private static func preferredTextColor(for color: NSColor) -> NSColor {

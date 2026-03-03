@@ -96,7 +96,11 @@ struct ContentView: View {
             }
         }
         .sheet(isPresented: $viewModel.isShowingSettings) {
-            SettingsView(settings: settings, backgroundColor: viewModel.backgroundColorBinding())
+            SettingsView(
+                settings: settings,
+                backgroundColor: viewModel.backgroundColorBinding(),
+                metadataTextColor: viewModel.metadataTextColorBinding()
+            )
         }
         .toolbar {
             ToolbarItem(placement: .automatic) {

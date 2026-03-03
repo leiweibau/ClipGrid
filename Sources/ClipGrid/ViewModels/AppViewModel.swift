@@ -232,6 +232,15 @@ final class AppViewModel: ObservableObject {
         )
     }
 
+    func metadataTextColorBinding() -> Binding<Color> {
+        Binding(
+            get: { self.settings.metadataTextColor },
+            set: { newValue in
+                self.settings.updateMetadataTextColor(NSColor(newValue))
+            }
+        )
+    }
+
     func previewImage(for item: VideoItem?) -> NSImage {
         if let item, let image = item.previewImage {
             return image
@@ -242,7 +251,7 @@ final class AppViewModel: ObservableObject {
             durationText: item.map(formattedDuration(for:)) ?? "00:00",
             resolutionText: item.map(formattedResolution(for:)) ?? "0 × 0 px",
             fileSizeText: item.map(formattedSize(for:)) ?? "0 KB",
-            options: renderOptions()
+            options: renderOptions(for: item)
         )
     }
 
@@ -255,10 +264,11 @@ final class AppViewModel: ObservableObject {
                 item.resolution = renderMetadata.resolution
             }
 
+            let thumbnailSize = settings.resolvedThumbnailSize(for: item.resolution)
             let thumbnails = try await VideoProcessingService.generateThumbnails(
                 for: item.url,
                 count: settings.columns * settings.rows,
-                maxSize: CGSize(width: settings.thumbnailWidth, height: settings.thumbnailHeight)
+                maxSize: thumbnailSize
             )
 
             let image = ContactSheetRenderer.render(
@@ -267,7 +277,7 @@ final class AppViewModel: ObservableObject {
                 resolutionText: formattedResolution(for: item),
                 fileSizeText: formattedSize(for: item),
                 thumbnails: thumbnails,
-                options: renderOptions()
+                options: renderOptions(for: item)
             )
 
             item.previewImage = image
@@ -304,7 +314,7 @@ final class AppViewModel: ObservableObject {
                 let thumbnails = try await VideoProcessingService.generateThumbnails(
                     for: item.url,
                     count: settings.columns * settings.rows,
-                    maxSize: CGSize(width: settings.thumbnailWidth, height: settings.thumbnailHeight)
+                    maxSize: settings.resolvedThumbnailSize(for: item.resolution)
                 )
                 image = ContactSheetRenderer.render(
                     title: item.fileName,
@@ -312,7 +322,7 @@ final class AppViewModel: ObservableObject {
                     resolutionText: formattedResolution(for: item),
                     fileSizeText: formattedSize(for: item),
                     thumbnails: thumbnails,
-                    options: renderOptions()
+                    options: renderOptions(for: item)
                 )
             }
 
@@ -324,18 +334,25 @@ final class AppViewModel: ObservableObject {
         }
     }
 
-    private func renderOptions() -> ContactSheetRenderOptions {
+    private func renderOptions(for item: VideoItem?) -> ContactSheetRenderOptions {
         ContactSheetRenderOptions(
             columns: settings.columns,
             rows: settings.rows,
             spacing: settings.thumbnailSpacing,
-            thumbnailSize: CGSize(width: settings.thumbnailWidth, height: settings.thumbnailHeight),
+            thumbnailSize: settings.resolvedThumbnailSize(for: item?.resolution ?? .zero),
             backgroundColor: settings.backgroundNSColor,
+            metadataTextColor: settings.metadataTextNSColor,
+            fileNameFontSize: settings.resolvedFileNameFontSize,
+            durationFontSize: settings.resolvedDurationFontSize,
+            fileSizeFontSize: settings.resolvedFileSizeFontSize,
+            resolutionFontSize: settings.resolvedResolutionFontSize,
+            timestampFontSize: settings.resolvedTimestampFontSize,
             metadataVisibility: ContactSheetMetadataVisibility(
                 showFileName: settings.showFileName,
                 showDuration: settings.showDuration,
                 showFileSize: settings.showFileSize,
-                showResolution: settings.showResolution
+                showResolution: settings.showResolution,
+                showTimestamp: settings.showTimestamp
             )
         )
     }

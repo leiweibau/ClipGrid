@@ -48,6 +48,20 @@ bash Scripts/package-app.sh
 
 After that, the native macOS app will be available at `dist/ClipGrid.app`.
 
+## Running an Unnotarized Build
+
+If macOS blocks the app because it is not notarized, use one of these methods:
+
+1. Move `ClipGrid.app` to `Applications`.
+2. In Finder, right-click the app and choose `Open`.
+3. Confirm the security dialog with `Open`.
+
+Alternatively:
+
+1. Open `System Settings > Privacy & Security`.
+2. Scroll to the security section after a blocked launch attempt.
+3. Allow the app to open anyway, then launch it again.
+
 ## Notes
 
 - The app icon is generated from `icon.png` during packaging.

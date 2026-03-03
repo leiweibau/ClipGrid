@@ -24,16 +24,26 @@ enum AppStrings {
     static var settingsTitle: String { text("settings.title") }
     static func columns(_ value: Int) -> String { formatted("settings.columns", value) }
     static func rows(_ value: Int) -> String { formatted("settings.rows", value) }
-    static func thumbnailWidth(_ value: Int) -> String { formatted("settings.thumbnail_width", value) }
-    static func thumbnailHeight(_ value: Int) -> String { formatted("settings.thumbnail_height", value) }
+    static var thumbnailWidth: String { text("settings.thumbnail_width") }
+    static var thumbnailHeight: String { text("settings.thumbnail_height") }
     static func spacing(_ value: Int) -> String { formatted("settings.spacing", value) }
     static var exportFormat: String { text("settings.export_format") }
     static var background: String { text("settings.background") }
+    static var metadataTextColor: String { text("settings.metadata_text_color") }
     static var metadata: String { text("settings.metadata") }
+    static var fontSizes: String { text("settings.font_sizes") }
+    static var fileNameFontSize: String { text("settings.file_name_font_size") }
+    static var durationFontSize: String { text("settings.duration_font_size") }
+    static var fileSizeFontSize: String { text("settings.file_size_font_size") }
+    static var resolutionFontSize: String { text("settings.resolution_font_size") }
+    static var timestampFontSize: String { text("settings.timestamp_font_size") }
+    static func pixelPlaceholder(_ value: Int) -> String { formatted("settings.pixel_placeholder", value) }
+    static var auto: String { text("settings.auto") }
     static var showFileName: String { text("settings.show_file_name") }
     static var showDuration: String { text("settings.show_duration") }
     static var showFileSize: String { text("settings.show_file_size") }
     static var showResolution: String { text("settings.show_resolution") }
+    static var showTimestamp: String { text("settings.show_timestamp") }
     static var close: String { text("common.close") }
 
     static var sidebarVideos: String { text("sidebar.videos") }
