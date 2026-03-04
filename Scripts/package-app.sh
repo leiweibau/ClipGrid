@@ -4,20 +4,21 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 X86_BUILD_DIR="$ROOT_DIR/.build/x86_64-apple-macosx/release"
 ARM_BUILD_DIR="$ROOT_DIR/.build/arm64-apple-macosx/release"
-APP_NAME="ClipGrid"
-APP_DIR="$ROOT_DIR/dist/$APP_NAME.app"
+EXECUTABLE_NAME="ClipGrid"
+APP_BUNDLE_NAME="Thumbnail Grid Studio"
+APP_DIR="$ROOT_DIR/dist/$APP_BUNDLE_NAME.app"
 CONTENTS_DIR="$APP_DIR/Contents"
 MACOS_DIR="$CONTENTS_DIR/MacOS"
 RESOURCES_DIR="$CONTENTS_DIR/Resources"
 TOOLS_DIR="$RESOURCES_DIR/Tools"
-SWIFTPM_BUNDLE_NAME="${APP_NAME}_${APP_NAME}.bundle"
+SWIFTPM_BUNDLE_NAME="${EXECUTABLE_NAME}_${EXECUTABLE_NAME}.bundle"
 SWIFTPM_BUNDLE_SOURCE="$ARM_BUILD_DIR/$SWIFTPM_BUNDLE_NAME"
 SWIFTPM_BUNDLE_APP_DEST="$APP_DIR/$SWIFTPM_BUNDLE_NAME"
 FFMPEG_X86_DIR="$ROOT_DIR/.cache/ffmpeg-install/x86_64/bin"
 FFMPEG_ARM_DIR="$ROOT_DIR/.cache/ffmpeg-install/arm64/bin"
 ICON_SOURCE="$ROOT_DIR/icon.png"
 ICON_PREPARED="$ROOT_DIR/Resources/AppIconSource.png"
-ICONSET_DIR="/tmp/${APP_NAME}.iconset"
+ICONSET_DIR="/tmp/${EXECUTABLE_NAME}.iconset"
 ICON_OUTPUT="$ROOT_DIR/Resources/AppIcon.icns"
 
 require_bundled_tool() {
@@ -67,9 +68,9 @@ mkdir -p "$RESOURCES_DIR"
 mkdir -p "$TOOLS_DIR/x86_64"
 mkdir -p "$TOOLS_DIR/arm64"
 lipo -create \
-  "$X86_BUILD_DIR/$APP_NAME" \
-  "$ARM_BUILD_DIR/$APP_NAME" \
-  -output "$MACOS_DIR/$APP_NAME"
+  "$X86_BUILD_DIR/$EXECUTABLE_NAME" \
+  "$ARM_BUILD_DIR/$EXECUTABLE_NAME" \
+  -output "$MACOS_DIR/$EXECUTABLE_NAME"
 cp "$ROOT_DIR/Resources/Info.plist" "$CONTENTS_DIR/Info.plist"
 if [ -f "$ICON_OUTPUT" ]; then
   cp "$ICON_OUTPUT" "$RESOURCES_DIR/AppIcon.icns"

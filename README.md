@@ -1,10 +1,10 @@
-# ClipGrid
+# Thumbnail Grid Studio
 
 This is a vibe-coding project. I do not plan to review pull requests or handle issues for this repository.
 
-ClipGrid is a native macOS app built with SwiftUI that imports multiple videos and exports a video preview image for each one as `JPG` or `PNG`.
+Thumbnail Grid Studio is a native macOS app built with SwiftUI that imports multiple videos and exports a video preview image for each one as `JPG` or `PNG`.
 
-![ClipGrid Screenshot](screen.png)
+![Thumbnail Grid Studio Screenshot](screen.png)
 
 ## Features
 
@@ -50,13 +50,13 @@ bash Scripts/build-ffmpeg.sh
 bash Scripts/package-app.sh
 ```
 
-After that, the native macOS app will be available at `dist/ClipGrid.app`.
+After that, the native macOS app will be available at `dist/Thumbnail Grid Studio.app`.
 
 ## Running an Unnotarized Build
 
 If macOS blocks the app because it is not notarized, use one of these methods:
 
-1. Move `ClipGrid.app` to `Applications`.
+1. Move `Thumbnail Grid Studio.app` to `Applications`.
 2. In Finder, right-click the app and choose `Open`.
 3. Confirm the security dialog with `Open`.
 

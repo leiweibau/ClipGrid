@@ -7,15 +7,15 @@
     <key>CFBundleExecutable</key>
     <string>ClipGrid</string>
     <key>CFBundleIdentifier</key>
-    <string>local.clipgrid</string>
+    <string>local.thumbnailgridstudio</string>
     <key>CFBundleInfoDictionaryVersion</key>
     <string>6.0</string>
     <key>CFBundleIconFile</key>
     <string>AppIcon</string>
     <key>CFBundleName</key>
-    <string>ClipGrid</string>
+    <string>Thumbnail Grid Studio</string>
     <key>CFBundleDisplayName</key>
-    <string>ClipGrid</string>
+    <string>Thumbnail Grid Studio</string>
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleShortVersionString</key>
