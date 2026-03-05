@@ -48,6 +48,7 @@ final class AppSettings: ObservableObject {
     @Published var showFileSize: Bool { didSet { defaults.set(showFileSize, forKey: Keys.showFileSize) } }
     @Published var showResolution: Bool { didSet { defaults.set(showResolution, forKey: Keys.showResolution) } }
     @Published var showTimestamp: Bool { didSet { defaults.set(showTimestamp, forKey: Keys.showTimestamp) } }
+    @Published var exportSeparateThumbnails: Bool { didSet { defaults.set(exportSeparateThumbnails, forKey: Keys.exportSeparateThumbnails) } }
     @Published var fileNameFontSizeText: String { didSet { defaults.set(fileNameFontSizeText, forKey: Keys.fileNameFontSizeText) } }
     @Published var durationFontSizeText: String { didSet { defaults.set(durationFontSizeText, forKey: Keys.durationFontSizeText) } }
     @Published var fileSizeFontSizeText: String { didSet { defaults.set(fileSizeFontSizeText, forKey: Keys.fileSizeFontSizeText) } }
@@ -75,6 +76,7 @@ final class AppSettings: ObservableObject {
         static let showFileSize = "settings.showFileSize"
         static let showResolution = "settings.showResolution"
         static let showTimestamp = "settings.showTimestamp"
+        static let exportSeparateThumbnails = "settings.exportSeparateThumbnails"
         static let fileNameFontSizeText = "settings.fileNameFontSizeText"
         static let durationFontSizeText = "settings.durationFontSizeText"
         static let fileSizeFontSizeText = "settings.fileSizeFontSizeText"
@@ -102,6 +104,7 @@ final class AppSettings: ObservableObject {
         self.showFileSize = defaults.object(forKey: Keys.showFileSize) as? Bool ?? true
         self.showResolution = defaults.object(forKey: Keys.showResolution) as? Bool ?? true
         self.showTimestamp = defaults.object(forKey: Keys.showTimestamp) as? Bool ?? true
+        self.exportSeparateThumbnails = defaults.object(forKey: Keys.exportSeparateThumbnails) as? Bool ?? false
         self.fileNameFontSizeText = defaults.string(forKey: Keys.fileNameFontSizeText) ?? "\(Int(Self.defaultFileNameFontSize))"
         self.durationFontSizeText = defaults.string(forKey: Keys.durationFontSizeText) ?? "\(Int(Self.defaultDurationFontSize))"
         self.fileSizeFontSizeText = defaults.string(forKey: Keys.fileSizeFontSizeText) ?? "\(Int(Self.defaultFileSizeFontSize))"
@@ -155,6 +158,7 @@ final class AppSettings: ObservableObject {
             showFileSize ? "1" : "0",
             showResolution ? "1" : "0",
             showTimestamp ? "1" : "0",
+            exportSeparateThumbnails ? "1" : "0",
             fileNameFontSizeText,
             durationFontSizeText,
             fileSizeFontSizeText,

@@ -548,6 +548,21 @@ final class AppViewModel: ObservableObject {
 
             let targetURL = directory.appendingPathComponent(outputFileName(fileName: input.fileName, exportFormat: configuration.exportFormat))
             try writeImage(image, to: targetURL, format: configuration.exportFormat)
+
+            if configuration.exportSeparateThumbnails {
+                let fullResolutionThumbnails = try await VideoProcessingService.generateThumbnails(
+                    for: input.url,
+                    count: configuration.columns * configuration.rows,
+                    maxSize: resolution
+                )
+                try exportSeparateThumbnails(
+                    fullResolutionThumbnails,
+                    for: input.fileName,
+                    in: directory,
+                    format: configuration.exportFormat
+                )
+            }
+
             return RenderJobResult(
                 id: input.id,
                 outcome: .success(
@@ -565,6 +580,33 @@ final class AppViewModel: ObservableObject {
     private static func outputFileName(fileName: String, exportFormat: ExportFormat) -> String {
         let stem = URL(fileURLWithPath: fileName).deletingPathExtension().lastPathComponent
         return "\(stem).\(exportFormat.fileExtension)"
+    }
+
+    private static func exportSeparateThumbnails(
+        _ thumbnails: [ThumbnailFrame],
+        for fileName: String,
+        in directory: URL,
+        format: ExportFormat
+    ) throws {
+        let stem = URL(fileURLWithPath: fileName).deletingPathExtension().lastPathComponent
+        let targetFolder = directory.appendingPathComponent(stem, isDirectory: true)
+        try FileManager.default.createDirectory(at: targetFolder, withIntermediateDirectories: true)
+
+        for (index, thumbnail) in thumbnails.enumerated() {
+            let timePart = timestampForFileName(thumbnail.timestamp)
+            let itemName = String(format: "%03d_%@.%@", index + 1, timePart, format.fileExtension)
+            let targetURL = targetFolder.appendingPathComponent(itemName)
+            try writeImage(thumbnail.image, to: targetURL, format: format)
+        }
+    }
+
+    private static func timestampForFileName(_ seconds: TimeInterval) -> String {
+        let totalMilliseconds = max(Int((seconds * 1000).rounded()), 0)
+        let hours = totalMilliseconds / 3_600_000
+        let minutes = (totalMilliseconds % 3_600_000) / 60_000
+        let secs = (totalMilliseconds % 60_000) / 1000
+        let millis = totalMilliseconds % 1000
+        return String(format: "%02d-%02d-%02d_%03d", hours, minutes, secs, millis)
     }
 
     private static func writeImage(_ image: NSImage, to url: URL, format: ExportFormat) throws {
@@ -640,6 +682,7 @@ private struct RenderConfiguration: Sendable {
     let resolutionFontSize: CGFloat
     let timestampFontSize: CGFloat
     let exportFormat: ExportFormat
+    let exportSeparateThumbnails: Bool
     let metadataVisibility: ContactSheetMetadataVisibility
 
     @MainActor
@@ -657,6 +700,7 @@ private struct RenderConfiguration: Sendable {
         resolutionFontSize = settings.resolvedResolutionFontSize
         timestampFontSize = settings.resolvedTimestampFontSize
         exportFormat = settings.exportFormat
+        exportSeparateThumbnails = settings.exportSeparateThumbnails
         metadataVisibility = ContactSheetMetadataVisibility(
             showFileName: settings.showFileName,
             showDuration: settings.showDuration,

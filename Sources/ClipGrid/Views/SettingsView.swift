@@ -41,6 +41,8 @@ struct SettingsView: View {
                     .pickerStyle(.segmented)
                     .frame(width: 200)
                 }
+
+                Toggle(AppStrings.exportSeparateThumbnails, isOn: $settings.exportSeparateThumbnails)
             }
 
             settingsSection(AppStrings.colors) {

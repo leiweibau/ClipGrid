@@ -48,6 +48,7 @@ enum AppStrings {
     static var showFileSize: String { text("settings.show_file_size") }
     static var showResolution: String { text("settings.show_resolution") }
     static var showTimestamp: String { text("settings.show_timestamp") }
+    static var exportSeparateThumbnails: String { text("settings.export_separate_thumbnails") }
     static var close: String { text("common.close") }
 
     static var sidebarVideos: String { text("sidebar.videos") }

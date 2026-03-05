@@ -103,35 +103,35 @@ struct ContentView: View {
             )
         }
         .toolbar {
-            ToolbarItem(placement: .automatic) {
-                Button {
-                    viewModel.clearAll()
-                } label: {
-                    toolbarButtonLabel(
-                        title: AppStrings.clearAllHelp,
-                        systemImage: "trash.circle",
-                        weight: .regular
-                    )
-                }
-                .help(AppStrings.clearAllHelp)
-                .disabled(viewModel.videos.isEmpty || viewModel.isRendering || viewModel.isExporting)
-            }
-
-            ToolbarItem(placement: .primaryAction) {
-                Button {
-                    Task {
-                        await viewModel.startRendering()
+            ToolbarItem(placement: .principal) {
+                HStack(alignment: .center, spacing: 28) {
+                    Button {
+                        viewModel.clearAll()
+                    } label: {
+                        toolbarButtonLabel(
+                            title: AppStrings.clearAllHelp,
+                            systemImage: "trash.circle",
+                            weight: .regular
+                        )
                     }
-                } label: {
-                    toolbarButtonLabel(
-                        title: AppStrings.startHelp,
-                        systemImage: "play.fill",
-                        weight: .semibold,
-                        tint: .green
-                    )
+                    .help(AppStrings.clearAllHelp)
+                    .disabled(viewModel.videos.isEmpty || viewModel.isRendering || viewModel.isExporting)
+
+                    Button {
+                        Task {
+                            await viewModel.startRendering()
+                        }
+                    } label: {
+                        toolbarButtonLabel(
+                            title: AppStrings.startHelp,
+                            systemImage: "play.fill",
+                            weight: .semibold,
+                            tint: .green
+                        )
+                    }
+                    .help(AppStrings.startHelp)
+                    .disabled(viewModel.videos.isEmpty || viewModel.isRendering || viewModel.isExporting)
                 }
-                .help(AppStrings.startHelp)
-                .disabled(viewModel.videos.isEmpty || viewModel.isRendering || viewModel.isExporting)
             }
         }
         .alert(AppStrings.errorTitle, isPresented: Binding(

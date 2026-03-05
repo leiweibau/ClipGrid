@@ -66,6 +66,12 @@ Alternatively:
 2. Scroll to the security section after a blocked launch attempt.
 3. Allow the app to open anyway, then launch it again.
 
+In some cases with unsigned apps, you may also need:
+
+```bash
+xattr -r -d com.apple.quarantine /Applications/Thumbnail\ Grid\ Studio.app
+```
+
 ## Notes
 
 - The app icon is generated from `icon.png` during packaging.

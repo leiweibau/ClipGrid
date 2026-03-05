@@ -47,6 +47,7 @@
 "settings.show_file_size" = "Show file size";
 "settings.show_resolution" = "Show resolution";
 "settings.show_timestamp" = "Show timestamp";
+"settings.export_separate_thumbnails" = "Export separate thumbnails";
 
 "sidebar.videos" = "Videos";
 "sidebar.importing" = "Importing videos";
