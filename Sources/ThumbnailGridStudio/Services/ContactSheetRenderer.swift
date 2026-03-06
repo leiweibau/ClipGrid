@@ -248,12 +248,25 @@ enum ContactSheetRenderer {
     }
 
     private static func calculatedHeaderHeight(for options: ContactSheetRenderOptions) -> CGFloat {
+        let titleAttributes: [NSAttributedString.Key: Any] = [
+            .font: NSFont.systemFont(ofSize: options.fileNameFontSize, weight: .semibold)
+        ]
+        let durationAttributes: [NSAttributedString.Key: Any] = [
+            .font: NSFont.systemFont(ofSize: options.durationFontSize, weight: .medium)
+        ]
+        let fileSizeAttributes: [NSAttributedString.Key: Any] = [
+            .font: NSFont.systemFont(ofSize: options.fileSizeFontSize, weight: .medium)
+        ]
+        let resolutionAttributes: [NSAttributedString.Key: Any] = [
+            .font: NSFont.systemFont(ofSize: options.resolutionFontSize, weight: .medium)
+        ]
+
         var height: CGFloat = 18
-        if options.metadataVisibility.showFileName { height += options.fileNameFontSize + 10 }
+        if options.metadataVisibility.showFileName { height += lineHeight(for: titleAttributes) + 10 }
         if options.metadataVisibility.showDuration || options.metadataVisibility.showFileSize {
-            height += max(options.durationFontSize, options.fileSizeFontSize) + 8
+            height += max(lineHeight(for: durationAttributes), lineHeight(for: fileSizeAttributes)) + 8
         }
-        if options.metadataVisibility.showResolution { height += options.resolutionFontSize + 6 }
+        if options.metadataVisibility.showResolution { height += lineHeight(for: resolutionAttributes) + 6 }
         return max(height, 18)
     }
 
@@ -282,8 +295,7 @@ enum ContactSheetRenderer {
     }
 
     private static func lineHeight(for attributes: [NSAttributedString.Key: Any]) -> CGFloat {
-        guard let font = attributes[.font] as? NSFont else { return 18 }
-        return ceil(font.ascender - font.descender + font.leading)
+        ceil(("Ag" as NSString).size(withAttributes: attributes).height)
     }
 
     private static func preferredTextColor(for color: NSColor) -> NSColor {

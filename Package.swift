@@ -2,24 +2,32 @@
 import PackageDescription
 
 let package = Package(
-    name: "ClipGrid",
+    name: "ThumbnailGridStudio",
     defaultLocalization: "de",
     platforms: [
         .macOS(.v13)
     ],
     products: [
         .executable(
-            name: "ClipGrid",
-            targets: ["ClipGrid"]
+            name: "ThumbnailGridStudio",
+            targets: ["ThumbnailGridStudio"]
+        ),
+        .executable(
+            name: "thumbnail-grid-studio-cli",
+            targets: ["ThumbnailGridStudioCLI"]
         )
     ],
     targets: [
         .executableTarget(
-            name: "ClipGrid",
-            path: "Sources/ClipGrid",
+            name: "ThumbnailGridStudio",
+            path: "Sources/ThumbnailGridStudio",
             resources: [
                 .process("Resources")
             ]
+        ),
+        .executableTarget(
+            name: "ThumbnailGridStudioCLI",
+            path: "Sources/ThumbnailGridStudioCLI"
         )
     ]
 )

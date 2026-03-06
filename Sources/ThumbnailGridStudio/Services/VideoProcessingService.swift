@@ -221,7 +221,7 @@ enum VideoProcessingService {
 
         guard process.terminationStatus == 0 else {
             throw NSError(
-                domain: "ClipGrid.FFmpeg",
+                domain: "ThumbnailGridStudio.FFmpeg",
                 code: Int(process.terminationStatus),
                 userInfo: [
                     NSLocalizedDescriptionKey: String(data: errorData, encoding: .utf8) ?? AppStrings.unreadableVideo
@@ -247,7 +247,7 @@ enum VideoProcessingService {
         }
 
         throw NSError(
-            domain: "ClipGrid.FFmpeg",
+            domain: "ThumbnailGridStudio.FFmpeg",
             code: 127,
             userInfo: [
                 NSLocalizedDescriptionKey: "\(toolName) not found"

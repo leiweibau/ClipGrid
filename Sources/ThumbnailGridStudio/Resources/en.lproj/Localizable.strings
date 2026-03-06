@@ -33,6 +33,7 @@
 "settings.colors" = "Colors";
 "settings.background" = "Background";
 "settings.metadata_text_color" = "Metadata text color";
+"settings.hex_placeholder" = "RRGGBB";
 "settings.metadata" = "Metadata";
 "settings.font_sizes" = "Font sizes";
 "settings.file_name_font_size" = "File name";

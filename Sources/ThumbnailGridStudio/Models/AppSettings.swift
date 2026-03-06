@@ -181,6 +181,32 @@ final class AppSettings: ObservableObject {
         metadataTextBlue = Double(rgbColor.blueComponent)
     }
 
+    var backgroundHexCode: String {
+        hexCode(red: backgroundRed, green: backgroundGreen, blue: backgroundBlue)
+    }
+
+    var metadataTextHexCode: String {
+        hexCode(red: metadataTextRed, green: metadataTextGreen, blue: metadataTextBlue)
+    }
+
+    @discardableResult
+    func updateBackgroundColorHex(_ hex: String) -> Bool {
+        guard let rgb = rgbTuple(fromHex: hex) else { return false }
+        backgroundRed = rgb.red
+        backgroundGreen = rgb.green
+        backgroundBlue = rgb.blue
+        return true
+    }
+
+    @discardableResult
+    func updateMetadataTextColorHex(_ hex: String) -> Bool {
+        guard let rgb = rgbTuple(fromHex: hex) else { return false }
+        metadataTextRed = rgb.red
+        metadataTextGreen = rgb.green
+        metadataTextBlue = rgb.blue
+        return true
+    }
+
     func resolvedThumbnailSize(for resolution: CGSize) -> CGSize {
         let width = parsedPositiveCGFloat(from: thumbnailWidthText)
         let height = parsedPositiveCGFloat(from: thumbnailHeightText)
@@ -243,5 +269,25 @@ final class AppSettings: ObservableObject {
             return Self.defaultThumbnailWidth / Self.defaultThumbnailHeight
         }
         return resolution.width / resolution.height
+    }
+
+    private func hexCode(red: Double, green: Double, blue: Double) -> String {
+        let r = Int((max(0, min(1, red)) * 255).rounded())
+        let g = Int((max(0, min(1, green)) * 255).rounded())
+        let b = Int((max(0, min(1, blue)) * 255).rounded())
+        return String(format: "%02X%02X%02X", r, g, b)
+    }
+
+    private func rgbTuple(fromHex rawHex: String) -> (red: Double, green: Double, blue: Double)? {
+        let trimmed = rawHex
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .replacingOccurrences(of: "#", with: "")
+            .uppercased()
+        guard trimmed.count == 6 else { return nil }
+        guard let value = UInt32(trimmed, radix: 16) else { return nil }
+        let red = Double((value & 0xFF0000) >> 16) / 255.0
+        let green = Double((value & 0x00FF00) >> 8) / 255.0
+        let blue = Double(value & 0x0000FF) / 255.0
+        return (red, green, blue)
     }
 }

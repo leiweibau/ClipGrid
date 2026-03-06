@@ -5,9 +5,12 @@ struct SettingsView: View {
     let backgroundColor: Binding<Color>
     let metadataTextColor: Binding<Color>
     @Environment(\.dismiss) private var dismiss
+    @State private var backgroundHexText = ""
+    @State private var metadataHexText = ""
 
     private let settingsFieldWidth: CGFloat = 64
     private let metadataFieldWidth: CGFloat = 64
+    private let hexFieldWidth: CGFloat = 90
 
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
@@ -47,8 +50,18 @@ struct SettingsView: View {
 
             settingsSection(AppStrings.colors) {
                 HStack(alignment: .top, spacing: 44) {
-                    colorRow(title: "\(AppStrings.background):", selection: backgroundColor)
-                    colorRow(title: "\(AppStrings.metadataTextColor):", selection: metadataTextColor)
+                    colorRow(
+                        title: "\(AppStrings.background):",
+                        selection: backgroundColor,
+                        hexText: $backgroundHexText,
+                        applyHex: { settings.updateBackgroundColorHex($0) }
+                    )
+                    colorRow(
+                        title: "\(AppStrings.metadataTextColor):",
+                        selection: metadataTextColor,
+                        hexText: $metadataHexText,
+                        applyHex: { settings.updateMetadataTextColorHex($0) }
+                    )
                 }
             }
 
@@ -113,6 +126,28 @@ struct SettingsView: View {
         }
         .padding(24)
         .frame(width: 620)
+        .onAppear {
+            backgroundHexText = settings.backgroundHexCode
+            metadataHexText = settings.metadataTextHexCode
+        }
+        .onChange(of: settings.backgroundRed) { _ in
+            backgroundHexText = settings.backgroundHexCode
+        }
+        .onChange(of: settings.backgroundGreen) { _ in
+            backgroundHexText = settings.backgroundHexCode
+        }
+        .onChange(of: settings.backgroundBlue) { _ in
+            backgroundHexText = settings.backgroundHexCode
+        }
+        .onChange(of: settings.metadataTextRed) { _ in
+            metadataHexText = settings.metadataTextHexCode
+        }
+        .onChange(of: settings.metadataTextGreen) { _ in
+            metadataHexText = settings.metadataTextHexCode
+        }
+        .onChange(of: settings.metadataTextBlue) { _ in
+            metadataHexText = settings.metadataTextHexCode
+        }
     }
 
     private var labelColumnWidth: CGFloat {
@@ -151,12 +186,42 @@ struct SettingsView: View {
         }
     }
 
-    private func colorRow(title: String, selection: Binding<Color>) -> some View {
-        HStack(spacing: 12) {
+    private func colorRow(
+        title: String,
+        selection: Binding<Color>,
+        hexText: Binding<String>,
+        applyHex: @escaping (String) -> Bool
+    ) -> some View {
+        HStack(alignment: .top, spacing: 12) {
             Text(title)
                 .frame(width: max(150, labelColumnWidth), alignment: .leading)
-            ColorPicker("", selection: selection, supportsOpacity: false)
-                .labelsHidden()
+            VStack(alignment: .leading, spacing: 8) {
+                ColorPicker("", selection: selection, supportsOpacity: false)
+                    .labelsHidden()
+                    .frame(width: hexFieldWidth, alignment: .leading)
+                TextField(AppStrings.hexPlaceholder, text: hexText)
+                    .textFieldStyle(.roundedBorder)
+                    .frame(width: hexFieldWidth, alignment: .leading)
+                    .onChange(of: hexText.wrappedValue) { newValue in
+                        let filtered = newValue
+                            .uppercased()
+                            .filter { $0.isHexDigit }
+                        if filtered != newValue {
+                            hexText.wrappedValue = filtered
+                        }
+                        if filtered.count > 6 {
+                            hexText.wrappedValue = String(filtered.prefix(6))
+                        }
+                        if filtered.count == 6 {
+                            _ = applyHex(filtered)
+                        }
+                    }
+                    .onSubmit {
+                        if !applyHex(hexText.wrappedValue) {
+                            hexText.wrappedValue = String(hexText.wrappedValue.prefix(6)).uppercased()
+                        }
+                    }
+            }
         }
     }
 }

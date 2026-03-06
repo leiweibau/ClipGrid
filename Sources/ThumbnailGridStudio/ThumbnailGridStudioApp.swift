@@ -1,7 +1,7 @@
 import SwiftUI
 
 @main
-struct ClipGridApp: App {
+struct ThumbnailGridStudioApp: App {
     @StateObject private var viewModel = AppViewModel()
 
     var body: some Scene {

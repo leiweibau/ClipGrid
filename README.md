@@ -19,6 +19,7 @@ The most important capabilities in the current version are:
 - German and English localization
 - One-click render and export for all loaded videos
 - Light and dark placeholder preview artwork that follows the current macOS appearance
+- Additional CLI tool for batch contact-sheet export
 
 ## Requirements
 
@@ -34,10 +35,65 @@ swift run
 
 You can also open `Package.swift` directly in Xcode.
 
+## CLI Usage
+
+The project includes a separate command-line binary:
+
+```bash
+swift run thumbnail-grid-studio-cli --h
+```
+
+Main usage:
+
+```bash
+swift run thumbnail-grid-studio-cli \
+  --input /path/video1.mp4 \
+  --input /path/video2.mkv \
+  --output-dir /path/output
+```
+
+Example with custom grid options:
+
+```bash
+swift run thumbnail-grid-studio-cli \
+  --input /path/video.mp4 \
+  --output-dir /path/output \
+  --columns 5 \
+  --rows 4 \
+  --format png \
+  --width 360 \
+  --height 202 \
+  --spacing 12 \
+  --background 111315
+```
+
+Supported parameters:
+
+- `--h`, `-h`, `--help`: show all parameters
+- `--input <file>`: input video, repeatable
+- `--output-dir <directory>`: output folder (required)
+- `--columns <int>`: grid columns (default `4`)
+- `--rows <int>`: grid rows (default `4`)
+- `--format <jpg|png>`: image format (default `jpg`)
+- `--width <px>`: thumbnail width (default `320`)
+- `--height <px>`: thumbnail height (default `180`)
+- `--spacing <px>`: spacing and margin (default `16`)
+- `--background <RRGGBB>`: background color in hex (default `1F2126`)
+
+The CLI writes one image per video with the same base file name as the source video.
+By default it uses bundled tools from `.cache/ffmpeg-install/<arch>/bin`. You can override with:
+
+- `THUMBNAIL_GRID_STUDIO_FFMPEG`
+- `THUMBNAIL_GRID_STUDIO_FFPROBE`
+
+Detailed CLI documentation:
+
+- `docs/CLI.md`
+
 ## Project Structure
 
-- `Sources/ClipGrid`: SwiftUI app, view models, renderer, and services
-- `Sources/ClipGrid/Resources`: localized `Localizable.strings` and preview placeholder artwork
+- `Sources/ThumbnailGridStudio`: SwiftUI app, view models, renderer, and services
+- `Sources/ThumbnailGridStudio/Resources`: localized `Localizable.strings` and preview placeholder artwork
 - `Resources/Info.plist`: bundle metadata for the packaged app
 - `Scripts/build-ffmpeg.sh`: builds bundled `ffmpeg` and `ffprobe` binaries from the official FFmpeg source
 - `Scripts/package-app.sh`: builds the native `.app` bundle

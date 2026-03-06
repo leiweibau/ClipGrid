@@ -4,7 +4,8 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 X86_BUILD_DIR="$ROOT_DIR/.build/x86_64-apple-macosx/release"
 ARM_BUILD_DIR="$ROOT_DIR/.build/arm64-apple-macosx/release"
-EXECUTABLE_NAME="ClipGrid"
+EXECUTABLE_NAME="ThumbnailGridStudio"
+CLI_EXECUTABLE_NAME="thumbnail-grid-studio-cli"
 APP_BUNDLE_NAME="Thumbnail Grid Studio"
 APP_DIR="$ROOT_DIR/dist/$APP_BUNDLE_NAME.app"
 CONTENTS_DIR="$APP_DIR/Contents"
@@ -71,6 +72,11 @@ lipo -create \
   "$X86_BUILD_DIR/$EXECUTABLE_NAME" \
   "$ARM_BUILD_DIR/$EXECUTABLE_NAME" \
   -output "$MACOS_DIR/$EXECUTABLE_NAME"
+lipo -create \
+  "$X86_BUILD_DIR/$CLI_EXECUTABLE_NAME" \
+  "$ARM_BUILD_DIR/$CLI_EXECUTABLE_NAME" \
+  -output "$MACOS_DIR/$CLI_EXECUTABLE_NAME"
+chmod +x "$MACOS_DIR/$CLI_EXECUTABLE_NAME"
 cp "$ROOT_DIR/Resources/Info.plist" "$CONTENTS_DIR/Info.plist"
 if [ -f "$ICON_OUTPUT" ]; then
   cp "$ICON_OUTPUT" "$RESOURCES_DIR/AppIcon.icns"

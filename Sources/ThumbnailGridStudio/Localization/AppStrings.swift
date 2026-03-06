@@ -34,6 +34,7 @@ enum AppStrings {
     static var colors: String { text("settings.colors") }
     static var background: String { text("settings.background") }
     static var metadataTextColor: String { text("settings.metadata_text_color") }
+    static var hexPlaceholder: String { text("settings.hex_placeholder") }
     static var metadata: String { text("settings.metadata") }
     static var fontSizes: String { text("settings.font_sizes") }
     static var fileNameFontSize: String { text("settings.file_name_font_size") }

@@ -31,14 +31,6 @@ final class AppViewModel: ObservableObject {
         return formatter
     }()
 
-    private let durationFormatter: DateComponentsFormatter = {
-        let formatter = DateComponentsFormatter()
-        formatter.allowedUnits = [.hour, .minute, .second]
-        formatter.unitsStyle = .positional
-        formatter.zeroFormattingBehavior = [.pad]
-        return formatter
-    }()
-
     let supportedDropTypeIdentifiers: [String] = {
         var identifiers = [
             UTType.fileURL.identifier,
@@ -234,7 +226,7 @@ final class AppViewModel: ObservableObject {
     }
 
     func formattedDuration(for item: VideoItem) -> String {
-        durationFormatter.string(from: item.duration) ?? "00:00"
+        Self.formatDuration(item.duration)
     }
 
     func formattedSize(for item: VideoItem) -> String {
@@ -655,11 +647,14 @@ final class AppViewModel: ObservableObject {
     }
 
     private static func formatDuration(_ duration: TimeInterval) -> String {
-        let formatter = DateComponentsFormatter()
-        formatter.allowedUnits = [.hour, .minute, .second]
-        formatter.unitsStyle = .positional
-        formatter.zeroFormattingBehavior = [.pad]
-        return formatter.string(from: duration) ?? "00:00"
+        let totalSeconds = max(Int(duration.rounded()), 0)
+        let hours = totalSeconds / 3600
+        let minutes = (totalSeconds % 3600) / 60
+        let seconds = totalSeconds % 60
+        if hours > 0 {
+            return String(format: "%d:%02d:%02d", hours, minutes, seconds)
+        }
+        return String(format: "%02d:%02d", minutes, seconds)
     }
 
     private static func formatFileSize(_ fileSize: Int64) -> String {
@@ -804,12 +799,54 @@ private extension NSImage {
         return NSBitmapImageRep(data: tiffRepresentation)
     }
 
+    func srgbBitmapRepresentation() -> NSBitmapImageRep? {
+        guard let sourceCGImage = cgImage(forProposedRect: nil, context: nil, hints: nil) else {
+            return bitmapRepresentation()
+        }
+        let targetWidth = max(Int(size.width.rounded()), 1)
+        let targetHeight = max(Int(size.height.rounded()), 1)
+        guard let colorSpace = CGColorSpace(name: CGColorSpace.sRGB) else {
+            return bitmapRepresentation()
+        }
+        guard let context = CGContext(
+            data: nil,
+            width: targetWidth,
+            height: targetHeight,
+            bitsPerComponent: 8,
+            bytesPerRow: 0,
+            space: colorSpace,
+            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+        ) else {
+            return bitmapRepresentation()
+        }
+
+        context.interpolationQuality = .high
+        context.draw(
+            sourceCGImage,
+            in: CGRect(x: 0, y: 0, width: targetWidth, height: targetHeight)
+        )
+
+        guard let converted = context.makeImage() else {
+            return bitmapRepresentation()
+        }
+        return NSBitmapImageRep(cgImage: converted)
+    }
+
     func pngData() -> Data? {
-        bitmapRepresentation()?.representation(using: .png, properties: [:])
+        srgbBitmapRepresentation()?.representation(
+            using: .png,
+            properties: [
+                .compressionFactor: 1.0,
+                .interlaced: false
+            ]
+        )
     }
 
     func jpegData(compressionFactor: CGFloat) -> Data? {
-        bitmapRepresentation()?.representation(using: .jpeg, properties: [.compressionFactor: compressionFactor])
+        srgbBitmapRepresentation()?.representation(
+            using: .jpeg,
+            properties: [.compressionFactor: compressionFactor]
+        )
     }
 }
 
