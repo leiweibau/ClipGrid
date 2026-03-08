@@ -6,8 +6,8 @@ The repository contains two native implementations:
 
 | Platform | Stack | Status | Release Package | Details |
 |---|---|---|---|---|
-| macOS | SwiftUI + Swift CLI | Implemented | [GitHub Releases](https://github.com/leiweibau/ThumbnailGridStudio/releases) | [macOS README](./apps/macos/README.md) |
-| Windows | WinUI 3 + .NET 8 | Implemented | [v1.3.1 - ThumbnailGridStudio-win-x64-fdd.zip](https://github.com/leiweibau/ThumbnailGridStudio/releases/download/v1.3.1/ThumbnailGridStudio-win-x64-fdd.zip) | [Windows README](./apps/windows/README.md) |
+| macOS | SwiftUI + Swift CLI | Implemented | [GitHub Releases](https://github.com/leiweibau/ThumbnailGridStudio/releases) | [README](./apps/macos/README.md) |
+| Windows | WinUI 3 + .NET 8 | Implemented | [v1.3.1 - ThumbnailGridStudio-win-x64-fdd.zip](https://github.com/leiweibau/ThumbnailGridStudio/releases/download/v1.3.1/ThumbnailGridStudio-win-x64-fdd.zip) | [README](./apps/windows/README.md) |
 
 ## Application Overview
 
