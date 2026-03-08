@@ -3,6 +3,10 @@ apps/macos/.build/
 apps/macos/.cache/
 apps/macos/dist/
 apps/windows/dist/
+apps/windows/.dotnet/
+apps/windows/.nuget/
+**/bin/
+**/obj/
 
 apps/macos/Resources/AppIcon.icns
 apps/macos/Resources/AppIconSource.png
