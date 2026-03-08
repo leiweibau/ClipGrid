@@ -2,7 +2,8 @@ param(
     [string]$Configuration = "Release",
     [string]$Runtime = "win-x64",
     [string]$Platform = "x64",
-    [string]$OutputDir = "apps/windows/dist/Thumbnail Grid Studio"
+    [string]$OutputDir = "apps/windows/dist/Thumbnail Grid Studio",
+    [bool]$CreateZip = $true
 )
 
 $ErrorActionPreference = "Stop"
@@ -59,6 +60,24 @@ function Resolve-TargetFramework([string]$projectPath) {
         }
     }
     throw "Could not resolve TargetFramework from $projectPath"
+}
+
+function Resolve-VersionTag([string]$projectPath) {
+    $xml = [xml](Get-Content $projectPath -Raw)
+
+    foreach ($pg in $xml.Project.PropertyGroup) {
+        if ($pg.Version -and -not [string]::IsNullOrWhiteSpace($pg.Version)) {
+            return $pg.Version.Trim()
+        }
+    }
+
+    foreach ($pg in $xml.Project.PropertyGroup) {
+        if ($pg.InformationalVersion -and -not [string]::IsNullOrWhiteSpace($pg.InformationalVersion)) {
+            return $pg.InformationalVersion.Trim()
+        }
+    }
+
+    return "0.0.0"
 }
 
 function Copy-WinUIXamlArtifacts([string]$projectPath, [string]$configuration, [string]$platform, [string]$runtime, [string]$publishDir) {
@@ -125,3 +144,17 @@ if ($LASTEXITCODE -ne 0) {
 Copy-WinUIXamlArtifacts -projectPath $project -configuration $Configuration -platform $Platform -runtime $Runtime -publishDir $publishOutputDir
 
 Write-Host "Published to $publishOutputDir"
+
+if ($CreateZip) {
+    $versionTag = Resolve-VersionTag -projectPath $project
+    $runtimeTag = $Runtime -replace "-", "_"
+    $zipName = "ThumbnailGridStudio-v$versionTag-$runtimeTag.zip"
+    $zipPath = Join-Path (Split-Path -Parent $publishOutputDir) $zipName
+
+    if (Test-Path $zipPath) {
+        Remove-Item -Force $zipPath
+    }
+
+    Compress-Archive -Path $publishOutputDir -DestinationPath $zipPath -CompressionLevel Optimal
+    Write-Host "Created ZIP: $zipPath"
+}

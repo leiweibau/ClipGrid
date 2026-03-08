@@ -1,16 +1,19 @@
+﻿using Microsoft.UI;
+using Microsoft.UI.Input;
+using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
-using Microsoft.UI.Windowing;
-using Microsoft.UI;
 using System.Globalization;
 using System.Runtime.InteropServices;
 using System.Text.Json;
 using ThumbnailGridStudio.WinUI.Services;
 using ThumbnailGridStudio.WinUI.ViewModels;
 using Windows.ApplicationModel.DataTransfer;
-using Windows.System;
+using Windows.Foundation;
+using Windows.Graphics;
 using Windows.Storage;
 using Windows.Storage.Pickers;
+using Windows.System;
 using WinRT.Interop;
 
 namespace ThumbnailGridStudio.WinUI;
@@ -19,6 +22,8 @@ public sealed partial class MainWindow : Window
 {
     public MainViewModel ViewModel { get; } = new();
     private string _lastOutputDirectory = LoadLastOutputDirectory();
+    private AppWindow? _appWindow;
+    private InputNonClientPointerSource? _nonClientPointerSource;
 
     public MainWindow()
     {
@@ -39,18 +44,19 @@ public sealed partial class MainWindow : Window
 
     private void ApplyLocalizedUiText()
     {
-        CheckUpdatesButton.Content = L("Main.CheckUpdates", "Auf Updates prüfen");
         NoPreviewText.Text = L("Main.NoPreview", "Keine Vorschau");
     }
 
     private void ConfigureCustomTitleBar()
     {
         ExtendsContentIntoTitleBar = true;
-        SetTitleBar(CustomTitleBarDragRegion);
+        SetTitleBar(null);
 
         var hWnd = WindowNative.GetWindowHandle(this);
         var windowId = Win32Interop.GetWindowIdFromWindow(hWnd);
         var appWindow = AppWindow.GetFromWindowId(windowId);
+        _appWindow = appWindow;
+        _nonClientPointerSource = InputNonClientPointerSource.GetForWindowId(windowId);
         if (!AppWindowTitleBar.IsCustomizationSupported())
         {
             return;
@@ -61,9 +67,87 @@ public sealed partial class MainWindow : Window
         titleBar.IconShowOptions = IconShowOptions.HideIconAndSystemMenu;
         titleBar.ButtonBackgroundColor = Colors.Transparent;
         titleBar.ButtonInactiveBackgroundColor = Colors.Transparent;
-        CustomTitleBar.Padding = new Thickness(0, 0, titleBar.RightInset, 0);
+        appWindow.Changed += (_, _) =>
+        {
+            DispatcherQueue.TryEnqueue(() =>
+            {
+                ApplyTitleBarInsets(titleBar);
+                UpdateDragRegions();
+            });
+        };
+        CustomTitleBar.SizeChanged += (_, _) => UpdateDragRegions();
+        TitleBarCenterButtons.SizeChanged += (_, _) => UpdateDragRegions();
+        ApplyTitleBarInsets(titleBar);
+        UpdateDragRegions();
 
         TrySetWindowIcon(appWindow);
+    }
+
+    private void ApplyTitleBarInsets(AppWindowTitleBar titleBar)
+    {
+        // Keep the custom titlebar content visually centered across the full window width
+        // by compensating system caption button inset on the centered button host only.
+        var inset = titleBar.RightInset;
+        CustomTitleBar.Padding = new Thickness(0);
+        TitleBarCenterButtons.Margin = new Thickness(inset, 0, inset, 0);
+    }
+
+    private void UpdateDragRegions()
+    {
+        if (_nonClientPointerSource is null || _appWindow is null)
+        {
+            return;
+        }
+
+        if (CustomTitleBar.ActualWidth <= 0 || CustomTitleBar.ActualHeight <= 0)
+        {
+            return;
+        }
+
+        var scale = Content is FrameworkElement root && root.XamlRoot is not null
+            ? root.XamlRoot.RasterizationScale
+            : 1.0;
+
+        var barWidthPx = Math.Max(1, (int)Math.Round(CustomTitleBar.ActualWidth * scale));
+        var barHeightPx = Math.Max(1, (int)Math.Round(CustomTitleBar.ActualHeight * scale));
+
+        var leftInsetPx = Math.Max(0, _appWindow.TitleBar.LeftInset);
+        var rightInsetPx = Math.Max(0, _appWindow.TitleBar.RightInset);
+
+        Point buttonsTopLeft = default;
+        if (TitleBarCenterButtons.ActualWidth > 0)
+        {
+            var transform = TitleBarCenterButtons.TransformToVisual(CustomTitleBar);
+            buttonsTopLeft = transform.TransformPoint(new Point(0, 0));
+        }
+
+        var buttonsLeftPx = (int)Math.Floor(buttonsTopLeft.X * scale);
+        var buttonsRightPx = (int)Math.Ceiling((buttonsTopLeft.X + TitleBarCenterButtons.ActualWidth) * scale);
+
+        buttonsLeftPx = Math.Clamp(buttonsLeftPx, leftInsetPx, barWidthPx - rightInsetPx);
+        buttonsRightPx = Math.Clamp(buttonsRightPx, leftInsetPx, barWidthPx - rightInsetPx);
+
+        var captionRects = new List<RectInt32>(2);
+
+        var leftWidth = buttonsLeftPx - leftInsetPx;
+        if (leftWidth > 0)
+        {
+            captionRects.Add(new RectInt32(leftInsetPx, 0, leftWidth, barHeightPx));
+        }
+
+        var rightStart = buttonsRightPx;
+        var rightWidth = (barWidthPx - rightInsetPx) - rightStart;
+        if (rightWidth > 0)
+        {
+            captionRects.Add(new RectInt32(rightStart, 0, rightWidth, barHeightPx));
+        }
+
+        if (captionRects.Count == 0)
+        {
+            captionRects.Add(new RectInt32(leftInsetPx, 0, Math.Max(1, barWidthPx - leftInsetPx - rightInsetPx), barHeightPx));
+        }
+
+        _nonClientPointerSource.SetRegionRects(NonClientRegionKind.Caption, captionRects.ToArray());
     }
 
     private async void AddVideosClick(object sender, RoutedEventArgs e)
@@ -334,6 +418,11 @@ public sealed partial class MainWindow : Window
 
     private async void CheckUpdatesClick(object sender, RoutedEventArgs e)
     {
+        await ShowUpdateCheckAsync();
+    }
+
+    private async Task ShowUpdateCheckAsync()
+    {
         try
         {
             var result = await UpdateService.CheckForUpdatesAsync();
@@ -347,14 +436,14 @@ public sealed partial class MainWindow : Window
                 var dialog = new ContentDialog
                 {
                     XamlRoot = root.XamlRoot,
-                    Title = L("Update.Available.Title", "Update verfügbar"),
+                    Title = L("Update.Available.Title", "Update verfÃ¼gbar"),
                     Content = string.Format(
                         CultureInfo.CurrentCulture,
-                        L("Update.Available.Content", "Neue Version: {0}\nInstalliert: {1}\n\nMöchtest du die Release-Seite öffnen?"),
+                        L("Update.Available.Content", "Neue Version: {0}\nInstalliert: {1}\n\nMÃ¶chtest du die Release-Seite Ã¶ffnen?"),
                         result.Release.TagName,
                         result.LocalVersion),
-                    PrimaryButtonText = L("Update.Available.Primary", "Release öffnen"),
-                    CloseButtonText = L("Update.Available.Close", "Später")
+                    PrimaryButtonText = L("Update.Available.Primary", "Release Ã¶ffnen"),
+                    CloseButtonText = L("Update.Available.Close", "SpÃ¤ter")
                 };
 
                 var dialogResult = await dialog.ShowAsync();
@@ -388,7 +477,7 @@ public sealed partial class MainWindow : Window
             var dialog = new ContentDialog
             {
                 XamlRoot = root.XamlRoot,
-                Title = L("Update.Error.Title", "Update-Prüfung fehlgeschlagen"),
+                Title = L("Update.Error.Title", "Update-PrÃ¼fung fehlgeschlagen"),
                 Content = ex.Message,
                 CloseButtonText = "OK"
             };
@@ -407,7 +496,7 @@ public sealed partial class MainWindow : Window
         var columns = new TextBox { Header = L("Settings.Columns", "Spalten"), Text = settings.ColumnsText };
         var rows = new TextBox { Header = L("Settings.Rows", "Zeilen"), Text = settings.RowsText };
         var width = new TextBox { Header = L("Settings.ThumbWidth", "Thumbnail Breite"), Text = settings.ThumbnailWidthText };
-        var height = new TextBox { Header = L("Settings.ThumbHeight", "Thumbnail Höhe"), Text = settings.ThumbnailHeightText };
+        var height = new TextBox { Header = L("Settings.ThumbHeight", "Thumbnail HÃ¶he"), Text = settings.ThumbnailHeightText };
         var spacing = new TextBox { Header = L("Settings.Spacing", "Abstand"), Text = settings.SpacingText };
         var bgHex = new TextBox { Header = L("Settings.BgHex", "Hintergrundfarbe (HEX-Code)"), Text = settings.BackgroundHex };
         var textHex = new TextBox { Header = L("Settings.TextHex", "Schriftfarbe (HEX-Code)"), Text = settings.MetadataHex };
@@ -418,13 +507,13 @@ public sealed partial class MainWindow : Window
         var durationFontPx = new TextBox { Text = settings.DurationFontSize.ToString("0", CultureInfo.InvariantCulture), PlaceholderText = "12" };
         var timestampVisible = new CheckBox { Content = L("Settings.ShowTimestamp", "Timestamp anzeigen"), IsChecked = settings.ShowTimestamp };
         var timestampFontPx = new TextBox { Text = settings.TimestampFontSize.ToString("0", CultureInfo.InvariantCulture), PlaceholderText = "12" };
-        var fileSizeVisible = new CheckBox { Content = L("Settings.ShowFileSize", "Dateigröße anzeigen"), IsChecked = settings.ShowFileSize };
+        var fileSizeVisible = new CheckBox { Content = L("Settings.ShowFileSize", "DateigrÃ¶ÃŸe anzeigen"), IsChecked = settings.ShowFileSize };
         var fileSizeFontPx = new TextBox { Text = settings.FileSizeFontSize.ToString("0", CultureInfo.InvariantCulture), PlaceholderText = "12" };
-        var resolutionVisible = new CheckBox { Content = L("Settings.ShowResolution", "Auflösung anzeigen"), IsChecked = settings.ShowResolution };
+        var resolutionVisible = new CheckBox { Content = L("Settings.ShowResolution", "AuflÃ¶sung anzeigen"), IsChecked = settings.ShowResolution };
         var resolutionFontPx = new TextBox { Text = settings.ResolutionFontSize.ToString("0", CultureInfo.InvariantCulture), PlaceholderText = "12" };
         var renderConcurrency = new NumberBox
         {
-            Header = L("Settings.RenderConcurrency", "Parallelität"),
+            Header = L("Settings.RenderConcurrency", "ParallelitÃ¤t"),
             Minimum = 1,
             Maximum = 8,
             SpinButtonPlacementMode = NumberBoxSpinButtonPlacementMode.Compact,
@@ -504,12 +593,18 @@ public sealed partial class MainWindow : Window
             MaxHeight = 620
         });
 
-        var buttonRow = new StackPanel
+        var buttonRow = new Grid
         {
-            Orientation = Orientation.Horizontal,
-            HorizontalAlignment = HorizontalAlignment.Right,
-            Spacing = 8,
             Margin = new Thickness(0, 40, 0, 0)
+        };
+        buttonRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        buttonRow.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+
+        var checkUpdatesButton = new Button
+        {
+            Content = L("Main.CheckUpdates", "Auf Updates prÃ¼fen"),
+            MinWidth = 170,
+            HorizontalAlignment = HorizontalAlignment.Left
         };
 
         var cancelButton = new Button
@@ -520,12 +615,24 @@ public sealed partial class MainWindow : Window
         };
         var applyButton = new Button
         {
-            Content = L("Settings.Apply", "Übernehmen"),
+            Content = L("Settings.Apply", "Ãœbernehmen"),
             MinWidth = 110,
             MaxWidth = 130
         };
-        buttonRow.Children.Add(cancelButton);
-        buttonRow.Children.Add(applyButton);
+
+        var rightButtons = new StackPanel
+        {
+            Orientation = Orientation.Horizontal,
+            HorizontalAlignment = HorizontalAlignment.Right,
+            Spacing = 8
+        };
+        rightButtons.Children.Add(cancelButton);
+        rightButtons.Children.Add(applyButton);
+
+        buttonRow.Children.Add(checkUpdatesButton);
+        buttonRow.Children.Add(rightButtons);
+        Grid.SetColumn(rightButtons, 1);
+
         contentHost.Children.Add(buttonRow);
 
         var dialog = new ContentDialog
@@ -538,6 +645,12 @@ public sealed partial class MainWindow : Window
         dialog.Resources["ContentDialogMinWidth"] = 1000d;
 
         var apply = false;
+        var runUpdateCheck = false;
+        checkUpdatesButton.Click += (_, _) =>
+        {
+            runUpdateCheck = true;
+            dialog.Hide();
+        };
         cancelButton.Click += (_, _) => dialog.Hide();
         applyButton.Click += (_, _) =>
         {
@@ -546,6 +659,12 @@ public sealed partial class MainWindow : Window
         };
 
         await dialog.ShowAsync();
+        if (runUpdateCheck)
+        {
+            await ShowUpdateCheckAsync();
+            return;
+        }
+
         if (!apply)
         {
             return;
@@ -692,3 +811,5 @@ public sealed partial class MainWindow : Window
         in Guid riid,
         out IntPtr ppv);
 }
+
+
