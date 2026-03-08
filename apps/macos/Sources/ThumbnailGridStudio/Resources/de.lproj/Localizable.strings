@@ -58,6 +58,8 @@
 "help.settings" = "Einstellungen";
 "help.clear_all" = "Gesamte Liste löschen";
 "help.start" = "Rendern und exportieren";
+"toolbar.clear_all" = "Liste leeren";
+"toolbar.render" = "Rendern";
 "menu.check_for_updates" = "Nach Updates suchen…";
 
 "drop.videos_here" = "Videos hier ablegen";

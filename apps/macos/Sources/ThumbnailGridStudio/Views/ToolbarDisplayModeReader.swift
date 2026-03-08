@@ -3,6 +3,8 @@ import SwiftUI
 
 @MainActor
 final class ToolbarDisplayModeObserver: ObservableObject {
+    private static let toolbarDisplayModeDefaultsKey = "settings.toolbarDisplayMode"
+
     @Published var displayMode: NSToolbar.DisplayMode = .default
 
     private var observation: NSKeyValueObservation?
@@ -15,6 +17,11 @@ final class ToolbarDisplayModeObserver: ObservableObject {
         observation?.invalidate()
         observation = nil
         currentToolbar = toolbar
+
+        if let persistedMode = persistedToolbarDisplayMode(), toolbar.displayMode != persistedMode {
+            toolbar.displayMode = persistedMode
+        }
+
         updateDisplayMode(toolbar.displayMode)
         observation = toolbar.observe(\.displayMode, options: [.initial, .new]) { [weak self] toolbar, _ in
             Task { @MainActor in
@@ -26,6 +33,15 @@ final class ToolbarDisplayModeObserver: ObservableObject {
     private func updateDisplayMode(_ newValue: NSToolbar.DisplayMode) {
         guard displayMode != newValue else { return }
         displayMode = newValue
+        UserDefaults.standard.set(Int(newValue.rawValue), forKey: Self.toolbarDisplayModeDefaultsKey)
+    }
+
+    private func persistedToolbarDisplayMode() -> NSToolbar.DisplayMode? {
+        guard UserDefaults.standard.object(forKey: Self.toolbarDisplayModeDefaultsKey) != nil else {
+            return nil
+        }
+        let rawValue = UInt(UserDefaults.standard.integer(forKey: Self.toolbarDisplayModeDefaultsKey))
+        return NSToolbar.DisplayMode(rawValue: rawValue)
     }
 }
 

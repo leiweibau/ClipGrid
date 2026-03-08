@@ -60,6 +60,8 @@ enum AppStrings {
     static var dropVideosHere: String { text("drop.videos_here") }
     static var clearAllHelp: String { text("help.clear_all") }
     static var startHelp: String { text("help.start") }
+    static var clearAllLabel: String { text("toolbar.clear_all") }
+    static var renderLabel: String { text("toolbar.render") }
     static var checkForUpdatesMenu: String { text("menu.check_for_updates") }
     static var generatingPreview: String { text("preview.generating") }
     static var startPrompt: String { text("action.start") }

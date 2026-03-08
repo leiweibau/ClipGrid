@@ -87,7 +87,7 @@ private struct ThumbnailFrame {
 
 private enum CLIRunner {
     static func run() throws {
-        setenv("LSUIElement", "1", 1)
+        configureHeadlessAppKit()
 
         let options = try parseArguments(Array(CommandLine.arguments.dropFirst()))
         if options.showHelp {
@@ -113,6 +113,14 @@ private enum CLIRunner {
             }
             try renderContactSheet(for: inputURL, options: options, fallback: fallback, outputDirectory: outputDirectoryURL)
         }
+    }
+
+    private static func configureHeadlessAppKit() {
+        setenv("LSUIElement", "1", 1)
+        setenv("LSBackgroundOnly", "1", 1)
+        let app = NSApplication.shared
+        app.setActivationPolicy(.prohibited)
+        app.deactivate()
     }
 
     private static func parseArguments(_ args: [String]) throws -> CLIOptions {
@@ -221,8 +229,6 @@ private enum CLIRunner {
         let ffprobePath = try resolveToolPath(explicitEnvName: "THUMBNAIL_GRID_STUDIO_FFPROBE", toolName: "ffprobe")
         let ffmpegPath = try resolveToolPath(explicitEnvName: "THUMBNAIL_GRID_STUDIO_FFMPEG", toolName: "ffmpeg")
 
-        print("Running ffprobe...")
-        fflush(stdout)
         let info = try readVideoInfo(inputURL: inputURL, ffprobePath: ffprobePath)
         let resolved = resolveRenderOptions(cli: options, fallback: fallback, video: info)
 
@@ -237,8 +243,6 @@ private enum CLIRunner {
         var frames: [ThumbnailFrame] = []
         frames.reserveCapacity(timestamps.count)
 
-        print("Running ffmpeg...")
-        fflush(stdout)
         for (index, timestamp) in timestamps.enumerated() {
             let frameURL = tempDirectory.appendingPathComponent("thumb-\(index).bmp")
             let filter =

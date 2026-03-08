@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct ContentView: View {
+    @Environment(\.colorScheme) private var colorScheme
     @ObservedObject var viewModel: AppViewModel
     @ObservedObject private var settings: AppSettings
     @State private var isDropTargeted = false
@@ -13,7 +14,7 @@ struct ContentView: View {
 
     var body: some View {
         ZStack {
-            NavigationSplitView {
+            HSplitView {
                 VStack(spacing: 0) {
                     if viewModel.isImporting {
                         VStack(alignment: .leading, spacing: 8) {
@@ -68,12 +69,13 @@ struct ContentView: View {
                     .padding(.horizontal, 12)
                     .padding(.vertical, 10)
                 }
-                .navigationTitle(AppStrings.sidebarVideos)
+                .frame(minWidth: 240, idealWidth: 280, maxWidth: 340)
                 .onDeleteCommand {
                     viewModel.removeSelected()
                 }
-            } detail: {
+
                 PreviewPane(viewModel: viewModel)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
 
             if isDropTargeted {
@@ -104,18 +106,19 @@ struct ContentView: View {
         }
         .toolbar {
             ToolbarItem(placement: .principal) {
-                HStack(alignment: .center, spacing: 28) {
+                HStack(alignment: .center, spacing: toolbarButtonSpacing) {
                     Button {
                         viewModel.clearAll()
                     } label: {
                         toolbarButtonLabel(
-                            title: AppStrings.clearAllHelp,
+                            title: AppStrings.clearAllLabel,
                             systemImage: "trash.circle",
                             weight: .regular
                         )
                     }
                     .help(AppStrings.clearAllHelp)
                     .disabled(viewModel.videos.isEmpty || viewModel.isRendering || viewModel.isExporting)
+                    .buttonStyle(.borderless)
 
                     Button {
                         Task {
@@ -123,7 +126,7 @@ struct ContentView: View {
                         }
                     } label: {
                         toolbarButtonLabel(
-                            title: AppStrings.startHelp,
+                            title: AppStrings.renderLabel,
                             systemImage: "play.fill",
                             weight: .semibold,
                             tint: .green
@@ -131,7 +134,10 @@ struct ContentView: View {
                     }
                     .help(AppStrings.startHelp)
                     .disabled(viewModel.videos.isEmpty || viewModel.isRendering || viewModel.isExporting)
+                    .buttonStyle(.borderless)
                 }
+                .frame(maxHeight: .infinity, alignment: .center)
+                .offset(y: toolbarVerticalOffset)
             }
         }
         .alert(AppStrings.errorTitle, isPresented: Binding(
@@ -172,6 +178,28 @@ struct ContentView: View {
         }
     }
 
+    private var toolbarButtonSpacing: CGFloat {
+        switch toolbarObserver.displayMode {
+        case .iconOnly:
+            return 48
+        case .iconAndLabel, .labelOnly, .default:
+            return 64
+        @unknown default:
+            return 64
+        }
+    }
+
+    private var toolbarVerticalOffset: CGFloat {
+        switch toolbarObserver.displayMode {
+        case .iconOnly:
+            return 0
+        case .iconAndLabel, .labelOnly, .default:
+            return 6
+        @unknown default:
+            return 6
+        }
+    }
+
     @ViewBuilder
     private func toolbarButtonLabel(
         title: String,
@@ -186,14 +214,25 @@ struct ContentView: View {
                 .frame(width: toolbarIconSize, height: toolbarIconSize)
                 .foregroundStyle(tint)
         } else {
-            Label {
-                Text(title)
-            } icon: {
+            VStack(spacing: 3) {
                 Image(systemName: systemImage)
                     .font(.system(size: toolbarIconSize, weight: weight))
                     .foregroundStyle(tint)
+                Text(title)
+                    .font(.caption2)
+                    .lineLimit(1)
+                    .fixedSize(horizontal: true, vertical: false)
+                    .foregroundStyle(toolbarTextColor)
             }
+            .frame(height: 34, alignment: .center)
         }
+    }
+
+    private var toolbarTextColor: Color {
+        if colorScheme == .dark {
+            return Color.white.opacity(0.94)
+        }
+        return Color(nsColor: .labelColor)
     }
 }
 
