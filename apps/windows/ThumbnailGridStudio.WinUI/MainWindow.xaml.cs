@@ -23,12 +23,24 @@ public sealed partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        ApplyLocalizedUiText();
         Title = string.Empty;
         ConfigureCustomTitleBar();
         if (Content is FrameworkElement root)
         {
             root.DataContext = ViewModel;
         }
+    }
+
+    private static string L(string key, string fallback)
+    {
+        return Localizer.Get(key, fallback);
+    }
+
+    private void ApplyLocalizedUiText()
+    {
+        CheckUpdatesButton.Content = L("Main.CheckUpdates", "Auf Updates prüfen");
+        NoPreviewText.Text = L("Main.NoPreview", "Keine Vorschau");
     }
 
     private void ConfigureCustomTitleBar()
@@ -335,10 +347,14 @@ public sealed partial class MainWindow : Window
                 var dialog = new ContentDialog
                 {
                     XamlRoot = root.XamlRoot,
-                    Title = "Update verfügbar",
-                    Content = $"Neue Version: {result.Release.TagName}\nInstalliert: {result.LocalVersion}\n\nMöchtest du die Release-Seite öffnen?",
-                    PrimaryButtonText = "Release öffnen",
-                    CloseButtonText = "Später"
+                    Title = L("Update.Available.Title", "Update verfügbar"),
+                    Content = string.Format(
+                        CultureInfo.CurrentCulture,
+                        L("Update.Available.Content", "Neue Version: {0}\nInstalliert: {1}\n\nMöchtest du die Release-Seite öffnen?"),
+                        result.Release.TagName,
+                        result.LocalVersion),
+                    PrimaryButtonText = L("Update.Available.Primary", "Release öffnen"),
+                    CloseButtonText = L("Update.Available.Close", "Später")
                 };
 
                 var dialogResult = await dialog.ShowAsync();
@@ -352,8 +368,11 @@ public sealed partial class MainWindow : Window
                 var dialog = new ContentDialog
                 {
                     XamlRoot = root.XamlRoot,
-                    Title = "Kein Update gefunden",
-                    Content = $"Installierte Version: {result.LocalVersion}",
+                    Title = L("Update.None.Title", "Kein Update gefunden"),
+                    Content = string.Format(
+                        CultureInfo.CurrentCulture,
+                        L("Update.None.Content", "Installierte Version: {0}"),
+                        result.LocalVersion),
                     CloseButtonText = "OK"
                 };
                 await dialog.ShowAsync();
@@ -369,7 +388,7 @@ public sealed partial class MainWindow : Window
             var dialog = new ContentDialog
             {
                 XamlRoot = root.XamlRoot,
-                Title = "Update-Prüfung fehlgeschlagen",
+                Title = L("Update.Error.Title", "Update-Prüfung fehlgeschlagen"),
                 Content = ex.Message,
                 CloseButtonText = "OK"
             };
@@ -385,27 +404,27 @@ public sealed partial class MainWindow : Window
         }
 
         var settings = ViewModel.Settings;
-        var columns = new TextBox { Header = "Spalten", Text = settings.ColumnsText };
-        var rows = new TextBox { Header = "Zeilen", Text = settings.RowsText };
-        var width = new TextBox { Header = "Thumbnail Breite", Text = settings.ThumbnailWidthText };
-        var height = new TextBox { Header = "Thumbnail Höhe", Text = settings.ThumbnailHeightText };
-        var spacing = new TextBox { Header = "Abstand", Text = settings.SpacingText };
-        var bgHex = new TextBox { Header = "Hintergrundfarbe (HEX-Code)", Text = settings.BackgroundHex };
-        var textHex = new TextBox { Header = "Schriftfarbe (HEX-Code)", Text = settings.MetadataHex };
-        var exportSeparate = new CheckBox { Content = "Separate Thumbnails exportieren", IsChecked = settings.ExportSeparateThumbnails };
-        var titleVisible = new CheckBox { Content = "Titel anzeigen", IsChecked = settings.ShowFileName };
+        var columns = new TextBox { Header = L("Settings.Columns", "Spalten"), Text = settings.ColumnsText };
+        var rows = new TextBox { Header = L("Settings.Rows", "Zeilen"), Text = settings.RowsText };
+        var width = new TextBox { Header = L("Settings.ThumbWidth", "Thumbnail Breite"), Text = settings.ThumbnailWidthText };
+        var height = new TextBox { Header = L("Settings.ThumbHeight", "Thumbnail Höhe"), Text = settings.ThumbnailHeightText };
+        var spacing = new TextBox { Header = L("Settings.Spacing", "Abstand"), Text = settings.SpacingText };
+        var bgHex = new TextBox { Header = L("Settings.BgHex", "Hintergrundfarbe (HEX-Code)"), Text = settings.BackgroundHex };
+        var textHex = new TextBox { Header = L("Settings.TextHex", "Schriftfarbe (HEX-Code)"), Text = settings.MetadataHex };
+        var exportSeparate = new CheckBox { Content = L("Settings.ExportSeparate", "Separate Thumbnails exportieren"), IsChecked = settings.ExportSeparateThumbnails };
+        var titleVisible = new CheckBox { Content = L("Settings.ShowTitle", "Titel anzeigen"), IsChecked = settings.ShowFileName };
         var titleFontPx = new TextBox { Text = settings.FileNameFontSize.ToString("0", CultureInfo.InvariantCulture), PlaceholderText = "12" };
-        var durationVisible = new CheckBox { Content = "Laufzeit anzeigen", IsChecked = settings.ShowDuration };
+        var durationVisible = new CheckBox { Content = L("Settings.ShowDuration", "Laufzeit anzeigen"), IsChecked = settings.ShowDuration };
         var durationFontPx = new TextBox { Text = settings.DurationFontSize.ToString("0", CultureInfo.InvariantCulture), PlaceholderText = "12" };
-        var timestampVisible = new CheckBox { Content = "Timestamp anzeigen", IsChecked = settings.ShowTimestamp };
+        var timestampVisible = new CheckBox { Content = L("Settings.ShowTimestamp", "Timestamp anzeigen"), IsChecked = settings.ShowTimestamp };
         var timestampFontPx = new TextBox { Text = settings.TimestampFontSize.ToString("0", CultureInfo.InvariantCulture), PlaceholderText = "12" };
-        var fileSizeVisible = new CheckBox { Content = "Dateigröße anzeigen", IsChecked = settings.ShowFileSize };
+        var fileSizeVisible = new CheckBox { Content = L("Settings.ShowFileSize", "Dateigröße anzeigen"), IsChecked = settings.ShowFileSize };
         var fileSizeFontPx = new TextBox { Text = settings.FileSizeFontSize.ToString("0", CultureInfo.InvariantCulture), PlaceholderText = "12" };
-        var resolutionVisible = new CheckBox { Content = "Auflösung anzeigen", IsChecked = settings.ShowResolution };
+        var resolutionVisible = new CheckBox { Content = L("Settings.ShowResolution", "Auflösung anzeigen"), IsChecked = settings.ShowResolution };
         var resolutionFontPx = new TextBox { Text = settings.ResolutionFontSize.ToString("0", CultureInfo.InvariantCulture), PlaceholderText = "12" };
         var renderConcurrency = new NumberBox
         {
-            Header = "Parallelität",
+            Header = L("Settings.RenderConcurrency", "Parallelität"),
             Minimum = 1,
             Maximum = 8,
             SpinButtonPlacementMode = NumberBoxSpinButtonPlacementMode.Compact,
@@ -422,17 +441,17 @@ public sealed partial class MainWindow : Window
         height.TextChanged += (_, _) => UpdateDimensionPlaceholders(width, height);
 
         var left = new StackPanel { Spacing = 8 };
-        left.Children.Add(new TextBlock { Text = "Layout", FontWeight = Microsoft.UI.Text.FontWeights.SemiBold });
+        left.Children.Add(new TextBlock { Text = L("Settings.Layout", "Layout"), FontWeight = Microsoft.UI.Text.FontWeights.SemiBold });
         left.Children.Add(BuildPairRow(columns, rows));
         left.Children.Add(BuildPairRow(width, height));
         left.Children.Add(spacing);
         left.Children.Add(renderConcurrency);
 
         var right = new StackPanel { Spacing = 8 };
-        right.Children.Add(new TextBlock { Text = "Farben & Export", FontWeight = Microsoft.UI.Text.FontWeights.SemiBold });
+        right.Children.Add(new TextBlock { Text = L("Settings.ColorsExport", "Farben & Export"), FontWeight = Microsoft.UI.Text.FontWeights.SemiBold });
         right.Children.Add(bgHex);
         right.Children.Add(textHex);
-        right.Children.Add(new TextBlock { Text = "Exportformat" });
+        right.Children.Add(new TextBlock { Text = L("Settings.ExportFormat", "Exportformat") });
         right.Children.Add(exportFormat);
         right.Children.Add(exportSeparate);
 
@@ -450,7 +469,7 @@ public sealed partial class MainWindow : Window
         var metadataSection = new StackPanel { Spacing = 8 };
         metadataSection.Children.Add(new TextBlock
         {
-            Text = "Metadaten im Vorschaubild",
+            Text = L("Settings.MetadataPreview", "Metadaten im Vorschaubild"),
             FontWeight = Microsoft.UI.Text.FontWeights.SemiBold
         });
 
@@ -495,13 +514,13 @@ public sealed partial class MainWindow : Window
 
         var cancelButton = new Button
         {
-            Content = "Abbrechen",
+            Content = L("Settings.Cancel", "Abbrechen"),
             MinWidth = 110,
             MaxWidth = 130
         };
         var applyButton = new Button
         {
-            Content = "Übernehmen",
+            Content = L("Settings.Apply", "Übernehmen"),
             MinWidth = 110,
             MaxWidth = 130
         };
@@ -512,7 +531,7 @@ public sealed partial class MainWindow : Window
         var dialog = new ContentDialog
         {
             XamlRoot = root.XamlRoot,
-            Title = "Einstellungen",
+            Title = L("Settings.Title", "Einstellungen"),
             Content = contentHost
         };
         dialog.Resources["ContentDialogMaxWidth"] = 1200d;

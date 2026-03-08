@@ -100,7 +100,7 @@ public sealed class MainViewModel : ObservableObject
     }
 
     public bool HasPreview => PreviewImage is not null;
-    public string SelectedTitle => SelectedVideo?.FileName ?? "Vorschau";
+    public string SelectedTitle => SelectedVideo?.FileName ?? Localizer.Get("View.PreviewFallbackTitle", "Vorschau");
     public string SelectedDuration => SelectedVideo?.DurationText ?? "00:00";
     public string SelectedFileSize => SelectedVideo?.FileSizeText ?? "0 KB";
     public string SelectedResolution => SelectedVideo?.ResolutionText ?? "0 x 0 px";
@@ -182,7 +182,11 @@ public sealed class MainViewModel : ObservableObject
 
                 if (!string.IsNullOrWhiteSpace(result?.Error))
                 {
-                    LastError = $"Import fehlgeschlagen ({Path.GetFileName(result.Path)}): {result.Error}";
+                    LastError = string.Format(
+                        CultureInfo.CurrentCulture,
+                        Localizer.Get("View.Error.ImportFailed", "Import fehlgeschlagen ({0}): {1}"),
+                        Path.GetFileName(result.Path),
+                        result.Error);
                 }
             }
         }
@@ -219,7 +223,7 @@ public sealed class MainViewModel : ObservableObject
 
             foreach (var item in snapshot)
             {
-                item.StatusText = "Wartet...";
+                item.StatusText = Localizer.Get("View.Status.Waiting", "Wartet...");
             }
 
             var maxConcurrency = Math.Max(Settings.RenderConcurrency, 1);
@@ -281,7 +285,7 @@ public sealed class MainViewModel : ObservableObject
         await gate.WaitAsync();
         try
         {
-            RunOnUi(() => item.StatusText = "Render läuft...");
+            RunOnUi(() => item.StatusText = Localizer.Get("View.Status.Rendering", "Render läuft..."));
 
             List<ThumbnailFrame>? thumbnails = null;
             try
@@ -325,7 +329,10 @@ public sealed class MainViewModel : ObservableObject
                     }
                 }
 
-                RunOnUi(() => item.StatusText = $"Exportiert: {Path.GetFileName(output)}");
+                RunOnUi(() => item.StatusText = string.Format(
+                    CultureInfo.CurrentCulture,
+                    Localizer.Get("View.Status.Exported", "Exportiert: {0}"),
+                    Path.GetFileName(output)));
                 if (SelectedVideo?.FilePath.Equals(item.FilePath, StringComparison.OrdinalIgnoreCase) == true)
                 {
                     RunOnUi(() => PreviewImage = new BitmapImage(new Uri(output)));
@@ -335,8 +342,15 @@ public sealed class MainViewModel : ObservableObject
             {
                 RunOnUi(() =>
                 {
-                    item.StatusText = $"Fehler: {ex.Message}";
-                    LastError = $"Export fehlgeschlagen ({item.FileName}): {ex.Message}";
+                    item.StatusText = string.Format(
+                        CultureInfo.CurrentCulture,
+                        Localizer.Get("View.Status.Error", "Fehler: {0}"),
+                        ex.Message);
+                    LastError = string.Format(
+                        CultureInfo.CurrentCulture,
+                        Localizer.Get("View.Error.ExportFailed", "Export fehlgeschlagen ({0}): {1}"),
+                        item.FileName,
+                        ex.Message);
                 });
             }
             finally
@@ -429,7 +443,13 @@ public sealed class MainViewModel : ObservableObject
 
         if (SelectedVideo is null)
         {
-            await RenderPlaceholderPreviewAsync("Vorschau", TimeSpan.Zero, 0, 0, 0, cancellationToken);
+            await RenderPlaceholderPreviewAsync(
+                Localizer.Get("View.PreviewFallbackTitle", "Vorschau"),
+                TimeSpan.Zero,
+                0,
+                0,
+                0,
+                cancellationToken);
             return;
         }
 

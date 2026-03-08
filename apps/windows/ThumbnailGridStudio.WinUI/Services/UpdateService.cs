@@ -24,7 +24,7 @@ public static class UpdateService
         await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
 
         var payload = await JsonSerializer.DeserializeAsync<GitHubReleasePayload>(stream, cancellationToken: cancellationToken)
-                      ?? throw new InvalidOperationException("Ungültige Antwort von GitHub.");
+                      ?? throw new InvalidOperationException(Localizer.Get("Update.InvalidResponse", "Ungültige Antwort von GitHub."));
 
         var localVersion = GetLocalVersionString();
         var remoteTag = payload.TagName ?? "0.0.0";
