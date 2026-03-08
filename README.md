@@ -19,9 +19,16 @@ The repository contains two native implementations:
 
 ## Screenshots
 
-| macOS | Windows |
-|---|---|
-| ![Thumbnail Grid Studio macOS](./apps/macos/screen.png) | ![Thumbnail Grid Studio Windows](./apps/windows/screen.png) |
+<table>
+  <tr>
+    <th width="50%">macOS</th>
+    <th width="50%">Windows</th>
+  </tr>
+  <tr>
+    <td width="50%"><img src="./apps/macos/screen.png" alt="Thumbnail Grid Studio macOS" /></td>
+    <td width="50%"><img src="./apps/windows/screen.png" alt="Thumbnail Grid Studio Windows" /></td>
+  </tr>
+</table>
 
 ## Repository Layout
 
