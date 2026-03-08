@@ -1,32 +1,35 @@
 # Thumbnail Grid Studio
 
-This repository is organized by platform.
+Thumbnail Grid Studio is a desktop app for creating contact-sheet style preview images from video files (`JPG` or `PNG`).
 
-## Layout
+The repository contains two native implementations:
 
-- `apps/macos`: Native macOS implementation (Swift/SwiftUI + CLI)
-- `apps/windows`: Native Windows implementation (WinUI 3 + .NET)
+| Platform | Stack | Status | Build Output | Details |
+|---|---|---|---|---|
+| macOS | SwiftUI + Swift CLI | Implemented | `apps/macos/dist/Thumbnail Grid Studio.app` | [macOS README](./apps/macos/README.md) |
+| Windows | WinUI 3 + .NET 8 | Implemented | `apps/windows/dist/Thumbnail Grid Studio/ThumbnailGridStudio.exe` | [Windows README](./apps/windows/README.md) |
 
-## Current Status
+## Application Overview
 
-- macOS app is fully implemented in `apps/macos`.
-- Windows app is implemented in `apps/windows`.
+- Import multiple videos via drag and drop or file picker
+- Generate thumbnail grids/contact sheets with configurable layout
+- Customize spacing, colors, metadata visibility, and font sizes
+- Export as `JPG` or `PNG`
+- Bundled `ffmpeg`/`ffprobe` for broad format support (`mp4`, `mov`, `avi`, `mkv`, `webm`, ...)
 
-## Build macOS App
+## Screenshots
 
-```bash
-cd apps/macos
-bash Scripts/package-app.sh
-```
+| macOS | Windows |
+|---|---|
+| ![Thumbnail Grid Studio macOS](./apps/macos/screen.png) | ![Thumbnail Grid Studio Windows](./apps/windows/screen.png) |
 
-## Build Windows App
+## Repository Layout
 
-```powershell
-powershell -ExecutionPolicy Bypass -File .\apps\windows\publish-winui-selfcontained.ps1 -Configuration Release -Runtime win-x64 -Platform x64
-```
+- `apps/macos`: macOS app source, packaging scripts, CLI
+- `apps/windows`: Windows app source, build/publish scripts
 
-See platform-specific details in:
+## Platform Documentation
 
-- `apps/macos/README.md`
-- `apps/macos/docs/CLI.md`
-- `apps/windows/README.md`
+- [macOS README](./apps/macos/README.md)
+- [Windows README](./apps/windows/README.md)
+- [macOS CLI Documentation](./apps/macos/docs/CLI.md)
