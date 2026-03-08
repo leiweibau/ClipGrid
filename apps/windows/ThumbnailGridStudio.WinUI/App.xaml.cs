@@ -9,10 +9,18 @@ public partial class App : Application
 
     public App()
     {
-        InitializeComponent();
-        UnhandledException += OnUnhandledException;
         AppDomain.CurrentDomain.UnhandledException += OnCurrentDomainUnhandledException;
         TaskScheduler.UnobservedTaskException += OnUnobservedTaskException;
+        try
+        {
+            InitializeComponent();
+            UnhandledException += OnUnhandledException;
+        }
+        catch (Exception ex)
+        {
+            TryWriteCrashLog("App ctor InitializeComponent failed", ex);
+            throw;
+        }
     }
 
     protected override void OnLaunched(LaunchActivatedEventArgs args)

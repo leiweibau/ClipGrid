@@ -71,6 +71,7 @@
                 </StackPanel>
 
                 <Button
+                    x:Name="CheckUpdatesButton"
                     Grid.Column="2"
                     Width="148"
                     Height="30"
@@ -216,6 +217,7 @@
                                         Source="{x:Bind ViewModel.PreviewImage, Mode=OneWay}"
                                         Visibility="{x:Bind BoolToVisibility(ViewModel.HasPreview), Mode=OneWay}" />
                                     <TextBlock
+                                        x:Name="NoPreviewText"
                                         Text="Keine Vorschau"
                                         HorizontalAlignment="Center"
                                         VerticalAlignment="Center"
