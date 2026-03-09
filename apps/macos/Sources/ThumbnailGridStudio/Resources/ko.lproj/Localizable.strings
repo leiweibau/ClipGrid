@@ -1,0 +1,80 @@
+"export.jpeg" = "JPEG";
+"export.png" = "PNG";
+
+"status.ready" = "준비됨";
+"status.generating" = "미리보기 생성 중";
+"status.preview_ready" = "미리보기 준비 완료";
+"status.exporting" = "내보내는 중";
+"status.exported" = "내보냄";
+
+"error.title" = "오류";
+"error.unreadable_video" = "비디오를 읽을 수 없습니다.";
+"error.no_thumbnails" = "썸네일을 생성할 수 없습니다.";
+"error.file" = "%@ 오류: %@";
+"error.no_extension" = "(확장자 없음)";
+"error.unsupported_import_summary" = "다음 파일 확장자는 지원되지 않아 가져오지 못했습니다: %@";
+
+"common.ok" = "확인";
+"common.close" = "닫기";
+
+"metadata.unknown_resolution" = "알 수 없는 해상도";
+
+"preview.placeholder_title" = "미리보기";
+"preview.generating" = "미리보기 생성 중";
+
+"settings.title" = "설정";
+"settings.thumbnails" = "썸네일";
+"settings.columns" = "열: %d";
+"settings.rows" = "행: %d";
+"settings.render_concurrency" = "동시 렌더 작업 수: %d";
+"settings.thumbnail_width" = "썸네일 너비";
+"settings.thumbnail_height" = "썸네일 높이";
+"settings.spacing_label" = "간격";
+"settings.spacing" = "간격: %d px";
+"settings.export_format" = "내보내기 형식";
+"settings.colors" = "색상";
+"settings.background" = "배경";
+"settings.metadata_text_color" = "메타데이터 텍스트 색상";
+"settings.hex_placeholder" = "RRGGBB";
+"settings.metadata" = "메타데이터";
+"settings.font_sizes" = "글꼴 크기";
+"settings.file_name_font_size" = "파일 이름";
+"settings.duration_font_size" = "재생 시간";
+"settings.file_size_font_size" = "파일 크기";
+"settings.resolution_font_size" = "해상도";
+"settings.timestamp_font_size" = "타임스탬프";
+"settings.pixel_placeholder" = "기본값: %d";
+"settings.auto" = "자동";
+"settings.show_file_name" = "파일 이름 표시";
+"settings.show_duration" = "재생 시간 표시";
+"settings.show_file_size" = "파일 크기 표시";
+"settings.show_resolution" = "해상도 표시";
+"settings.show_timestamp" = "타임스탬프 표시";
+"settings.export_separate_thumbnails" = "썸네일 별도 내보내기";
+
+"sidebar.videos" = "비디오";
+"sidebar.importing" = "비디오 가져오는 중";
+
+"help.add_videos" = "비디오 추가";
+"help.remove_selection" = "선택 제거";
+"help.settings" = "설정";
+"help.clear_all" = "전체 목록 비우기";
+"help.start" = "렌더 및 내보내기";
+"toolbar.clear_all" = "비우기";
+"toolbar.render" = "렌더";
+"menu.check_for_updates" = "업데이트 확인…";
+
+"drop.videos_here" = "여기에 비디오를 놓으세요";
+
+"action.start" = "시작";
+
+"update.available_title" = "업데이트 가능";
+"update.available_message" = "현재 버전: %1$@\n새 버전: %2$@";
+"update.release_notes_title" = "릴리스 노트";
+"update.no_release_notes" = "릴리스 노트가 없습니다.";
+"update.open_release_page" = "릴리스 열기";
+"update.later" = "나중에";
+"update.up_to_date_title" = "업데이트 없음";
+"update.up_to_date_message" = "이미 최신 버전(%@)을 사용 중입니다.";
+"update.error_title" = "업데이트 확인 실패";
+"update.error_message" = "업데이트 확인을 완료할 수 없습니다:\n%@";

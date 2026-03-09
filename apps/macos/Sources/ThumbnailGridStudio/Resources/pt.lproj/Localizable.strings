@@ -1,0 +1,80 @@
+"export.jpeg" = "JPEG";
+"export.png" = "PNG";
+
+"status.ready" = "Pronto";
+"status.generating" = "Gerando pré-visualização";
+"status.preview_ready" = "Pré-visualização pronta";
+"status.exporting" = "Exportando";
+"status.exported" = "Exportado";
+
+"error.title" = "Erro";
+"error.unreadable_video" = "Não foi possível ler o vídeo.";
+"error.no_thumbnails" = "Não foi possível gerar miniaturas.";
+"error.file" = "Erro para %@: %@";
+"error.no_extension" = "(sem extensão)";
+"error.unsupported_import_summary" = "As seguintes extensões não foram importadas por falta de suporte: %@";
+
+"common.ok" = "OK";
+"common.close" = "Fechar";
+
+"metadata.unknown_resolution" = "Resolução desconhecida";
+
+"preview.placeholder_title" = "Pré-visualização";
+"preview.generating" = "Gerando pré-visualização";
+
+"settings.title" = "Configurações";
+"settings.thumbnails" = "Miniaturas";
+"settings.columns" = "Colunas: %d";
+"settings.rows" = "Linhas: %d";
+"settings.render_concurrency" = "Tarefas de renderização simultâneas: %d";
+"settings.thumbnail_width" = "Largura da miniatura";
+"settings.thumbnail_height" = "Altura da miniatura";
+"settings.spacing_label" = "Espaçamento";
+"settings.spacing" = "Espaçamento: %d px";
+"settings.export_format" = "Formato de exportação";
+"settings.colors" = "Cores";
+"settings.background" = "Fundo";
+"settings.metadata_text_color" = "Cor do texto dos metadados";
+"settings.hex_placeholder" = "RRGGBB";
+"settings.metadata" = "Metadados";
+"settings.font_sizes" = "Tamanhos de fonte";
+"settings.file_name_font_size" = "Nome do arquivo";
+"settings.duration_font_size" = "Duração";
+"settings.file_size_font_size" = "Tamanho do arquivo";
+"settings.resolution_font_size" = "Resolução";
+"settings.timestamp_font_size" = "Carimbo de tempo";
+"settings.pixel_placeholder" = "Padrão: %d";
+"settings.auto" = "auto";
+"settings.show_file_name" = "Mostrar nome do arquivo";
+"settings.show_duration" = "Mostrar duração";
+"settings.show_file_size" = "Mostrar tamanho do arquivo";
+"settings.show_resolution" = "Mostrar resolução";
+"settings.show_timestamp" = "Mostrar carimbo de tempo";
+"settings.export_separate_thumbnails" = "Exportar miniaturas separadamente";
+
+"sidebar.videos" = "Vídeos";
+"sidebar.importing" = "Importando vídeos";
+
+"help.add_videos" = "Adicionar vídeos";
+"help.remove_selection" = "Remover seleção";
+"help.settings" = "Configurações";
+"help.clear_all" = "Limpar lista inteira";
+"help.start" = "Renderizar e exportar";
+"toolbar.clear_all" = "Limpar";
+"toolbar.render" = "Renderizar";
+"menu.check_for_updates" = "Verificar atualizações…";
+
+"drop.videos_here" = "Solte vídeos aqui";
+
+"action.start" = "Iniciar";
+
+"update.available_title" = "Atualização disponível";
+"update.available_message" = "Versão atual: %1$@\nNova versão: %2$@";
+"update.release_notes_title" = "Notas da versão";
+"update.no_release_notes" = "Nenhuma nota de versão disponível.";
+"update.open_release_page" = "Abrir versão";
+"update.later" = "Mais tarde";
+"update.up_to_date_title" = "Nenhuma atualização disponível";
+"update.up_to_date_message" = "Você já está usando a versão mais recente (%@).";
+"update.error_title" = "Falha na verificação de atualização";
+"update.error_message" = "Não foi possível concluir a verificação de atualização:\n%@";

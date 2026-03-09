@@ -1,0 +1,80 @@
+"export.jpeg" = "JPEG";
+"export.png" = "PNG";
+
+"status.ready" = "準備完了";
+"status.generating" = "プレビューを生成中";
+"status.preview_ready" = "プレビュー準備完了";
+"status.exporting" = "書き出し中";
+"status.exported" = "書き出し完了";
+
+"error.title" = "エラー";
+"error.unreadable_video" = "動画を読み込めませんでした。";
+"error.no_thumbnails" = "サムネイルを生成できませんでした。";
+"error.file" = "%@ のエラー: %@";
+"error.no_extension" = "（拡張子なし）";
+"error.unsupported_import_summary" = "次の拡張子は未対応のためインポートされませんでした: %@";
+
+"common.ok" = "OK";
+"common.close" = "閉じる";
+
+"metadata.unknown_resolution" = "不明な解像度";
+
+"preview.placeholder_title" = "プレビュー";
+"preview.generating" = "プレビューを生成中";
+
+"settings.title" = "設定";
+"settings.thumbnails" = "サムネイル";
+"settings.columns" = "列: %d";
+"settings.rows" = "行: %d";
+"settings.render_concurrency" = "同時レンダリング数: %d";
+"settings.thumbnail_width" = "サムネイル幅";
+"settings.thumbnail_height" = "サムネイル高さ";
+"settings.spacing_label" = "間隔";
+"settings.spacing" = "間隔: %d px";
+"settings.export_format" = "書き出し形式";
+"settings.colors" = "色";
+"settings.background" = "背景";
+"settings.metadata_text_color" = "メタデータ文字色";
+"settings.hex_placeholder" = "RRGGBB";
+"settings.metadata" = "メタデータ";
+"settings.font_sizes" = "フォントサイズ";
+"settings.file_name_font_size" = "ファイル名";
+"settings.duration_font_size" = "再生時間";
+"settings.file_size_font_size" = "ファイルサイズ";
+"settings.resolution_font_size" = "解像度";
+"settings.timestamp_font_size" = "タイムスタンプ";
+"settings.pixel_placeholder" = "既定値: %d";
+"settings.auto" = "自動";
+"settings.show_file_name" = "ファイル名を表示";
+"settings.show_duration" = "再生時間を表示";
+"settings.show_file_size" = "ファイルサイズを表示";
+"settings.show_resolution" = "解像度を表示";
+"settings.show_timestamp" = "タイムスタンプを表示";
+"settings.export_separate_thumbnails" = "サムネイルを個別に書き出す";
+
+"sidebar.videos" = "動画";
+"sidebar.importing" = "動画をインポート中";
+
+"help.add_videos" = "動画を追加";
+"help.remove_selection" = "選択を削除";
+"help.settings" = "設定";
+"help.clear_all" = "リストをすべて消去";
+"help.start" = "レンダリングして書き出し";
+"toolbar.clear_all" = "消去";
+"toolbar.render" = "レンダリング";
+"menu.check_for_updates" = "アップデートを確認…";
+
+"drop.videos_here" = "ここに動画をドロップ";
+
+"action.start" = "開始";
+
+"update.available_title" = "アップデートがあります";
+"update.available_message" = "現在のバージョン: %1$@\n新しいバージョン: %2$@";
+"update.release_notes_title" = "リリースノート";
+"update.no_release_notes" = "リリースノートはありません。";
+"update.open_release_page" = "リリースを開く";
+"update.later" = "あとで";
+"update.up_to_date_title" = "アップデートはありません";
+"update.up_to_date_message" = "すでに最新バージョン（%@）を使用しています。";
+"update.error_title" = "アップデート確認に失敗しました";
+"update.error_message" = "アップデート確認を完了できませんでした:\n%@";

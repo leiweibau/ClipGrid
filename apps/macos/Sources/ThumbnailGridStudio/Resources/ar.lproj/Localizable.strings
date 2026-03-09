@@ -1,0 +1,80 @@
+"export.jpeg" = "JPEG";
+"export.png" = "PNG";
+
+"status.ready" = "جاهز";
+"status.generating" = "جارٍ إنشاء المعاينة";
+"status.preview_ready" = "المعاينة جاهزة";
+"status.exporting" = "جارٍ التصدير";
+"status.exported" = "تم التصدير";
+
+"error.title" = "خطأ";
+"error.unreadable_video" = "تعذر قراءة الفيديو.";
+"error.no_thumbnails" = "تعذر إنشاء الصور المصغرة.";
+"error.file" = "خطأ في %@: %@";
+"error.no_extension" = "(بدون امتداد)";
+"error.unsupported_import_summary" = "لم يتم استيراد امتدادات الملفات التالية لعدم الدعم: %@";
+
+"common.ok" = "موافق";
+"common.close" = "إغلاق";
+
+"metadata.unknown_resolution" = "دقة غير معروفة";
+
+"preview.placeholder_title" = "معاينة";
+"preview.generating" = "جارٍ إنشاء المعاينة";
+
+"settings.title" = "الإعدادات";
+"settings.thumbnails" = "الصور المصغرة";
+"settings.columns" = "الأعمدة: %d";
+"settings.rows" = "الصفوف: %d";
+"settings.render_concurrency" = "مهام التصيير المتزامنة: %d";
+"settings.thumbnail_width" = "عرض الصورة المصغرة";
+"settings.thumbnail_height" = "ارتفاع الصورة المصغرة";
+"settings.spacing_label" = "التباعد";
+"settings.spacing" = "التباعد: %d px";
+"settings.export_format" = "تنسيق التصدير";
+"settings.colors" = "الألوان";
+"settings.background" = "الخلفية";
+"settings.metadata_text_color" = "لون نص البيانات الوصفية";
+"settings.hex_placeholder" = "RRGGBB";
+"settings.metadata" = "البيانات الوصفية";
+"settings.font_sizes" = "أحجام الخط";
+"settings.file_name_font_size" = "اسم الملف";
+"settings.duration_font_size" = "المدة";
+"settings.file_size_font_size" = "حجم الملف";
+"settings.resolution_font_size" = "الدقة";
+"settings.timestamp_font_size" = "الطابع الزمني";
+"settings.pixel_placeholder" = "الافتراضي: %d";
+"settings.auto" = "تلقائي";
+"settings.show_file_name" = "إظهار اسم الملف";
+"settings.show_duration" = "إظهار المدة";
+"settings.show_file_size" = "إظهار حجم الملف";
+"settings.show_resolution" = "إظهار الدقة";
+"settings.show_timestamp" = "إظهار الطابع الزمني";
+"settings.export_separate_thumbnails" = "تصدير الصور المصغرة بشكل منفصل";
+
+"sidebar.videos" = "الفيديوهات";
+"sidebar.importing" = "جارٍ استيراد الفيديوهات";
+
+"help.add_videos" = "إضافة فيديوهات";
+"help.remove_selection" = "إزالة التحديد";
+"help.settings" = "الإعدادات";
+"help.clear_all" = "مسح القائمة بالكامل";
+"help.start" = "تصيير وتصدير";
+"toolbar.clear_all" = "مسح";
+"toolbar.render" = "تصيير";
+"menu.check_for_updates" = "التحقق من التحديثات…";
+
+"drop.videos_here" = "أسقط الفيديوهات هنا";
+
+"action.start" = "ابدأ";
+
+"update.available_title" = "يتوفر تحديث";
+"update.available_message" = "الإصدار الحالي: %1$@\nالإصدار الجديد: %2$@";
+"update.release_notes_title" = "ملاحظات الإصدار";
+"update.no_release_notes" = "لا توجد ملاحظات إصدار متاحة.";
+"update.open_release_page" = "فتح الإصدار";
+"update.later" = "لاحقًا";
+"update.up_to_date_title" = "لا يوجد تحديث متاح";
+"update.up_to_date_message" = "أنت تستخدم بالفعل أحدث إصدار (%@).";
+"update.error_title" = "فشل التحقق من التحديث";
+"update.error_message" = "تعذر إكمال التحقق من التحديث:\n%@";

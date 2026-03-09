@@ -11,6 +11,8 @@
 "error.unreadable_video" = "Could not read video.";
 "error.no_thumbnails" = "Could not generate thumbnails.";
 "error.file" = "Error for %@: %@";
+"error.no_extension" = "(no extension)";
+"error.unsupported_import_summary" = "The following file extensions were not imported due to unsupported format: %@";
 
 "common.ok" = "OK";
 "common.close" = "Close";

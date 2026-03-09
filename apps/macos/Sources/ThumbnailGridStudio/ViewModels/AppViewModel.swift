@@ -60,9 +60,8 @@ final class AppViewModel: ObservableObject {
     func chooseVideos() {
         let panel = NSOpenPanel()
         panel.allowsMultipleSelection = true
-        panel.canChooseDirectories = false
-        panel.allowedContentTypes = supportedVideoContentTypes
-        panel.allowedFileTypes = Self.supportedVideoExtensions
+        panel.canChooseDirectories = true
+        panel.canChooseFiles = true
 
         guard panel.runModal() == .OK else { return }
         Task {
@@ -89,8 +88,9 @@ final class AppViewModel: ObservableObject {
     }
 
     func addVideos(from urls: [URL]) async {
+        let candidateURLs = resolvedCandidateInputURLs(from: urls)
         let existingURLs = Set(videos.map(\.url))
-        let newURLs = urls.filter { !existingURLs.contains($0) }
+        let newURLs = candidateURLs.filter { !existingURLs.contains($0) }
 
         guard !newURLs.isEmpty else { return }
 
@@ -141,6 +141,7 @@ final class AppViewModel: ObservableObject {
         }
 
         loadedItems.sort { $0.0 < $1.0 }
+        var failedURLs: [URL] = []
 
         for (index, result) in loadedItems {
             switch result {
@@ -152,10 +153,13 @@ final class AppViewModel: ObservableObject {
                 )
                 videos.append(item)
                 selectedVideoID = selectedVideoID ?? item.id
-            case .failure(let error):
-                let fileName = newURLs[index].lastPathComponent
-                lastError = AppStrings.fileError(fileName, error.localizedDescription)
+            case .failure:
+                failedURLs.append(newURLs[index])
             }
+        }
+
+        if !failedURLs.isEmpty {
+            lastError = unsupportedImportMessage(for: failedURLs)
         }
     }
 
@@ -170,9 +174,8 @@ final class AppViewModel: ObservableObject {
 
         Task {
             let droppedURLs = await loadDroppedURLs(from: matchingProviders)
-            let videoURLs = droppedURLs.filter(Self.isSupportedVideoURL(_:))
-            guard !videoURLs.isEmpty else { return }
-            await addVideos(from: videoURLs)
+            guard !droppedURLs.isEmpty else { return }
+            await addVideos(from: droppedURLs)
         }
 
         return true
@@ -752,12 +755,12 @@ final class AppViewModel: ObservableObject {
             guard let data = image.jpegData(compressionFactor: 0.92) else {
                 throw CocoaError(.fileWriteUnknown)
             }
-            try data.write(to: url)
+            try data.write(to: url, options: .withoutOverwriting)
         case .png:
             guard let data = image.pngData() else {
                 throw CocoaError(.fileWriteUnknown)
             }
-            try data.write(to: url)
+            try data.write(to: url, options: .withoutOverwriting)
         }
     }
 
@@ -771,22 +774,62 @@ final class AppViewModel: ObservableObject {
         return urls
     }
 
-    private static func isSupportedVideoURL(_ url: URL) -> Bool {
-        let fileExtension = url.pathExtension.lowercased()
-        if supportedVideoExtensions.contains(fileExtension) {
-            return true
+    private func resolvedCandidateInputURLs(from urls: [URL]) -> [URL] {
+        let fileManager = FileManager.default
+        var resolved: [URL] = []
+        var seen = Set<URL>()
+
+        for url in urls {
+            if isDirectory(url) {
+                let directChildren = (try? fileManager.contentsOfDirectory(
+                    at: url,
+                    includingPropertiesForKeys: [.isRegularFileKey],
+                    options: [.skipsHiddenFiles]
+                )) ?? []
+                for child in directChildren where isRegularFile(child, fileManager: fileManager) {
+                    if seen.insert(child).inserted {
+                        resolved.append(child)
+                    }
+                }
+            } else if isRegularFile(url, fileManager: fileManager) {
+                if seen.insert(url).inserted {
+                    resolved.append(url)
+                }
+            }
         }
 
-        guard let type = UTType(filenameExtension: url.pathExtension) else {
-            return false
-        }
-        return type.conforms(to: .movie) || type.conforms(to: .video)
+        return resolved
     }
 
-    private var supportedVideoContentTypes: [UTType] {
-        var contentTypes: [UTType] = [.movie, .mpeg4Movie, .quickTimeMovie]
-        contentTypes.append(contentsOf: Self.supportedVideoExtensions.compactMap { UTType(filenameExtension: $0) })
-        return Array(Set(contentTypes))
+    private func isDirectory(_ url: URL) -> Bool {
+        (try? url.resourceValues(forKeys: [.isDirectoryKey]).isDirectory) ?? false
+    }
+
+    private func isRegularFile(_ url: URL, fileManager: FileManager) -> Bool {
+        guard fileManager.fileExists(atPath: url.path) else { return false }
+        return (try? url.resourceValues(forKeys: [.isRegularFileKey]).isRegularFile) ?? false
+    }
+
+    private func unsupportedImportMessage(for urls: [URL]) -> String {
+        var countsByExtension: [String: Int] = [:]
+
+        for url in urls {
+            let ext = url.pathExtension.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+            let key = ext.isEmpty ? AppStrings.noExtension : ext
+            countsByExtension[key, default: 0] += 1
+        }
+
+        let details = countsByExtension
+            .sorted { lhs, rhs in
+                if lhs.value != rhs.value {
+                    return lhs.value > rhs.value
+                }
+                return lhs.key < rhs.key
+            }
+            .map { "\($0.value)x \($0.key)" }
+            .joined(separator: ", ")
+
+        return AppStrings.unsupportedImportSummary(details)
     }
 
     private static func processRenderJob(
@@ -821,6 +864,7 @@ final class AppViewModel: ObservableObject {
             )
 
             let targetURL = directory.appendingPathComponent(outputFileName(fileName: input.fileName, exportFormat: configuration.exportFormat))
+            try ensurePathDoesNotExist(targetURL)
             try writeImage(image, to: targetURL, format: configuration.exportFormat)
 
             if configuration.exportSeparateThumbnails {
@@ -864,6 +908,7 @@ final class AppViewModel: ObservableObject {
     ) throws {
         let stem = URL(fileURLWithPath: fileName).deletingPathExtension().lastPathComponent
         let targetFolder = directory.appendingPathComponent(stem, isDirectory: true)
+        try ensurePathDoesNotExist(targetFolder)
         try FileManager.default.createDirectory(at: targetFolder, withIntermediateDirectories: true)
 
         for (index, thumbnail) in thumbnails.enumerated() {
@@ -889,12 +934,22 @@ final class AppViewModel: ObservableObject {
             guard let data = image.jpegData(compressionFactor: 0.92) else {
                 throw CocoaError(.fileWriteUnknown)
             }
-            try data.write(to: url)
+            try data.write(to: url, options: .withoutOverwriting)
         case .png:
             guard let data = image.pngData() else {
                 throw CocoaError(.fileWriteUnknown)
             }
-            try data.write(to: url)
+            try data.write(to: url, options: .withoutOverwriting)
+        }
+    }
+
+    private static func ensurePathDoesNotExist(_ url: URL) throws {
+        if FileManager.default.fileExists(atPath: url.path) {
+            throw NSError(
+                domain: "ThumbnailGridStudio.Export",
+                code: CocoaError.fileWriteFileExists.rawValue,
+                userInfo: [NSLocalizedDescriptionKey: "Export aborted: \(url.lastPathComponent) already exists."]
+            )
         }
     }
 

@@ -3,7 +3,7 @@ import PackageDescription
 
 let package = Package(
     name: "ThumbnailGridStudio",
-    defaultLocalization: "de",
+    defaultLocalization: "en",
     platforms: [
         .macOS(.v13)
     ],

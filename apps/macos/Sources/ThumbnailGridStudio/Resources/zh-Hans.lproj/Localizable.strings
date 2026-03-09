@@ -1,0 +1,80 @@
+"export.jpeg" = "JPEG";
+"export.png" = "PNG";
+
+"status.ready" = "就绪";
+"status.generating" = "正在生成预览";
+"status.preview_ready" = "预览已就绪";
+"status.exporting" = "正在导出";
+"status.exported" = "已导出";
+
+"error.title" = "错误";
+"error.unreadable_video" = "无法读取视频。";
+"error.no_thumbnails" = "无法生成缩略图。";
+"error.file" = "%@ 出错：%@";
+"error.no_extension" = "（无扩展名）";
+"error.unsupported_import_summary" = "以下文件扩展名因不受支持而未导入：%@";
+
+"common.ok" = "确定";
+"common.close" = "关闭";
+
+"metadata.unknown_resolution" = "未知分辨率";
+
+"preview.placeholder_title" = "预览";
+"preview.generating" = "正在生成预览";
+
+"settings.title" = "设置";
+"settings.thumbnails" = "缩略图";
+"settings.columns" = "列：%d";
+"settings.rows" = "行：%d";
+"settings.render_concurrency" = "并发渲染任务：%d";
+"settings.thumbnail_width" = "缩略图宽度";
+"settings.thumbnail_height" = "缩略图高度";
+"settings.spacing_label" = "间距";
+"settings.spacing" = "间距：%d px";
+"settings.export_format" = "导出格式";
+"settings.colors" = "颜色";
+"settings.background" = "背景";
+"settings.metadata_text_color" = "元数据文字颜色";
+"settings.hex_placeholder" = "RRGGBB";
+"settings.metadata" = "元数据";
+"settings.font_sizes" = "字体大小";
+"settings.file_name_font_size" = "文件名";
+"settings.duration_font_size" = "时长";
+"settings.file_size_font_size" = "文件大小";
+"settings.resolution_font_size" = "分辨率";
+"settings.timestamp_font_size" = "时间戳";
+"settings.pixel_placeholder" = "默认：%d";
+"settings.auto" = "自动";
+"settings.show_file_name" = "显示文件名";
+"settings.show_duration" = "显示时长";
+"settings.show_file_size" = "显示文件大小";
+"settings.show_resolution" = "显示分辨率";
+"settings.show_timestamp" = "显示时间戳";
+"settings.export_separate_thumbnails" = "单独导出缩略图";
+
+"sidebar.videos" = "视频";
+"sidebar.importing" = "正在导入视频";
+
+"help.add_videos" = "添加视频";
+"help.remove_selection" = "移除所选";
+"help.settings" = "设置";
+"help.clear_all" = "清空整个列表";
+"help.start" = "渲染并导出";
+"toolbar.clear_all" = "清空";
+"toolbar.render" = "渲染";
+"menu.check_for_updates" = "检查更新…";
+
+"drop.videos_here" = "将视频拖放到此处";
+
+"action.start" = "开始";
+
+"update.available_title" = "有可用更新";
+"update.available_message" = "当前版本：%1$@\n新版本：%2$@";
+"update.release_notes_title" = "发行说明";
+"update.no_release_notes" = "没有可用的发行说明。";
+"update.open_release_page" = "打开发布页";
+"update.later" = "稍后";
+"update.up_to_date_title" = "无可用更新";
+"update.up_to_date_message" = "你已在使用最新版本（%@）。";
+"update.error_title" = "更新检查失败";
+"update.error_message" = "无法完成更新检查：\n%@";
