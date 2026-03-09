@@ -1,0 +1,80 @@
+"export.jpeg" = "JPEG";
+"export.png" = "PNG";
+
+"status.ready" = "Готово";
+"status.generating" = "Создание предпросмотра";
+"status.preview_ready" = "Предпросмотр готов";
+"status.exporting" = "Экспорт";
+"status.exported" = "Экспортировано";
+
+"error.title" = "Ошибка";
+"error.unreadable_video" = "Не удалось прочитать видео.";
+"error.no_thumbnails" = "Не удалось создать миниатюры.";
+"error.file" = "Ошибка для %@: %@";
+"error.no_extension" = "(без расширения)";
+"error.unsupported_import_summary" = "Следующие расширения файлов не были импортированы из-за отсутствия поддержки: %@";
+
+"common.ok" = "ОК";
+"common.close" = "Закрыть";
+
+"metadata.unknown_resolution" = "Неизвестное разрешение";
+
+"preview.placeholder_title" = "Предпросмотр";
+"preview.generating" = "Создание предпросмотра";
+
+"settings.title" = "Настройки";
+"settings.thumbnails" = "Миниатюры";
+"settings.columns" = "Столбцы: %d";
+"settings.rows" = "Строки: %d";
+"settings.render_concurrency" = "Параллельные задачи рендера: %d";
+"settings.thumbnail_width" = "Ширина миниатюры";
+"settings.thumbnail_height" = "Высота миниатюры";
+"settings.spacing_label" = "Интервал";
+"settings.spacing" = "Интервал: %d px";
+"settings.export_format" = "Формат экспорта";
+"settings.colors" = "Цвета";
+"settings.background" = "Фон";
+"settings.metadata_text_color" = "Цвет текста метаданных";
+"settings.hex_placeholder" = "RRGGBB";
+"settings.metadata" = "Метаданные";
+"settings.font_sizes" = "Размеры шрифта";
+"settings.file_name_font_size" = "Имя файла";
+"settings.duration_font_size" = "Длительность";
+"settings.file_size_font_size" = "Размер файла";
+"settings.resolution_font_size" = "Разрешение";
+"settings.timestamp_font_size" = "Метка времени";
+"settings.pixel_placeholder" = "По умолчанию: %d";
+"settings.auto" = "авто";
+"settings.show_file_name" = "Показывать имя файла";
+"settings.show_duration" = "Показывать длительность";
+"settings.show_file_size" = "Показывать размер файла";
+"settings.show_resolution" = "Показывать разрешение";
+"settings.show_timestamp" = "Показывать метку времени";
+"settings.export_separate_thumbnails" = "Экспортировать миниатюры отдельно";
+
+"sidebar.videos" = "Видео";
+"sidebar.importing" = "Импорт видео";
+
+"help.add_videos" = "Добавить видео";
+"help.remove_selection" = "Удалить выбранное";
+"help.settings" = "Настройки";
+"help.clear_all" = "Очистить весь список";
+"help.start" = "Рендер и экспорт";
+"toolbar.clear_all" = "Очистить";
+"toolbar.render" = "Рендер";
+"menu.check_for_updates" = "Проверить обновления…";
+
+"drop.videos_here" = "Перетащите видео сюда";
+
+"action.start" = "Старт";
+
+"update.available_title" = "Доступно обновление";
+"update.available_message" = "Текущая версия: %1$@\nНовая версия: %2$@";
+"update.release_notes_title" = "Примечания к выпуску";
+"update.no_release_notes" = "Примечания к выпуску отсутствуют.";
+"update.open_release_page" = "Открыть релиз";
+"update.later" = "Позже";
+"update.up_to_date_title" = "Обновлений нет";
+"update.up_to_date_message" = "Вы уже используете последнюю версию (%@).";
+"update.error_title" = "Ошибка проверки обновлений";
+"update.error_message" = "Не удалось выполнить проверку обновлений:\n%@";

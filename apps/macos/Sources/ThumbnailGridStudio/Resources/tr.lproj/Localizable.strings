@@ -1,0 +1,80 @@
+"export.jpeg" = "JPEG";
+"export.png" = "PNG";
+
+"status.ready" = "Hazır";
+"status.generating" = "Önizleme oluşturuluyor";
+"status.preview_ready" = "Önizleme hazır";
+"status.exporting" = "Dışa aktarılıyor";
+"status.exported" = "Dışa aktarıldı";
+
+"error.title" = "Hata";
+"error.unreadable_video" = "Video okunamadı.";
+"error.no_thumbnails" = "Küçük resimler oluşturulamadı.";
+"error.file" = "%@ için hata: %@";
+"error.no_extension" = "(uzantı yok)";
+"error.unsupported_import_summary" = "Aşağıdaki dosya uzantıları desteklenmediği için içe aktarılmadı: %@";
+
+"common.ok" = "Tamam";
+"common.close" = "Kapat";
+
+"metadata.unknown_resolution" = "Bilinmeyen çözünürlük";
+
+"preview.placeholder_title" = "Önizleme";
+"preview.generating" = "Önizleme oluşturuluyor";
+
+"settings.title" = "Ayarlar";
+"settings.thumbnails" = "Küçük resimler";
+"settings.columns" = "Sütunlar: %d";
+"settings.rows" = "Satırlar: %d";
+"settings.render_concurrency" = "Eşzamanlı render işleri: %d";
+"settings.thumbnail_width" = "Küçük resim genişliği";
+"settings.thumbnail_height" = "Küçük resim yüksekliği";
+"settings.spacing_label" = "Boşluk";
+"settings.spacing" = "Boşluk: %d px";
+"settings.export_format" = "Dışa aktarma biçimi";
+"settings.colors" = "Renkler";
+"settings.background" = "Arka plan";
+"settings.metadata_text_color" = "Meta veri metin rengi";
+"settings.hex_placeholder" = "RRGGBB";
+"settings.metadata" = "Meta veri";
+"settings.font_sizes" = "Yazı tipi boyutları";
+"settings.file_name_font_size" = "Dosya adı";
+"settings.duration_font_size" = "Süre";
+"settings.file_size_font_size" = "Dosya boyutu";
+"settings.resolution_font_size" = "Çözünürlük";
+"settings.timestamp_font_size" = "Zaman damgası";
+"settings.pixel_placeholder" = "Varsayılan: %d";
+"settings.auto" = "otomatik";
+"settings.show_file_name" = "Dosya adını göster";
+"settings.show_duration" = "Süreyi göster";
+"settings.show_file_size" = "Dosya boyutunu göster";
+"settings.show_resolution" = "Çözünürlüğü göster";
+"settings.show_timestamp" = "Zaman damgasını göster";
+"settings.export_separate_thumbnails" = "Küçük resimleri ayrı dışa aktar";
+
+"sidebar.videos" = "Videolar";
+"sidebar.importing" = "Videolar içe aktarılıyor";
+
+"help.add_videos" = "Video ekle";
+"help.remove_selection" = "Seçimi kaldır";
+"help.settings" = "Ayarlar";
+"help.clear_all" = "Tüm listeyi temizle";
+"help.start" = "Render ve dışa aktar";
+"toolbar.clear_all" = "Temizle";
+"toolbar.render" = "Render";
+"menu.check_for_updates" = "Güncellemeleri denetle…";
+
+"drop.videos_here" = "Videoları buraya bırakın";
+
+"action.start" = "Başlat";
+
+"update.available_title" = "Güncelleme mevcut";
+"update.available_message" = "Mevcut sürüm: %1$@\nYeni sürüm: %2$@";
+"update.release_notes_title" = "Sürüm notları";
+"update.no_release_notes" = "Sürüm notu yok.";
+"update.open_release_page" = "Sürümü aç";
+"update.later" = "Daha sonra";
+"update.up_to_date_title" = "Güncelleme yok";
+"update.up_to_date_message" = "Zaten en son sürümü (%@) kullanıyorsunuz.";
+"update.error_title" = "Güncelleme denetimi başarısız";
+"update.error_message" = "Güncelleme denetimi tamamlanamadı:\n%@";

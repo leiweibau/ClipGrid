@@ -1,0 +1,80 @@
+"export.jpeg" = "JPEG";
+"export.png" = "PNG";
+
+"status.ready" = "तैयार";
+"status.generating" = "पूर्वावलोकन बनाया जा रहा है";
+"status.preview_ready" = "पूर्वावलोकन तैयार";
+"status.exporting" = "निर्यात किया जा रहा है";
+"status.exported" = "निर्यात हो गया";
+
+"error.title" = "त्रुटि";
+"error.unreadable_video" = "वीडियो पढ़ा नहीं जा सका।";
+"error.no_thumbnails" = "थंबनेल बनाए नहीं जा सके।";
+"error.file" = "%@ के लिए त्रुटि: %@";
+"error.no_extension" = "(कोई एक्सटेंशन नहीं)";
+"error.unsupported_import_summary" = "निम्न फ़ाइल एक्सटेंशन असमर्थित होने के कारण आयात नहीं किए गए: %@";
+
+"common.ok" = "ठीक है";
+"common.close" = "बंद करें";
+
+"metadata.unknown_resolution" = "अज्ञात रिज़ॉल्यूशन";
+
+"preview.placeholder_title" = "पूर्वावलोकन";
+"preview.generating" = "पूर्वावलोकन बनाया जा रहा है";
+
+"settings.title" = "सेटिंग्स";
+"settings.thumbnails" = "थंबनेल";
+"settings.columns" = "कॉलम: %d";
+"settings.rows" = "पंक्तियाँ: %d";
+"settings.render_concurrency" = "समांतर रेंडर जॉब्स: %d";
+"settings.thumbnail_width" = "थंबनेल चौड़ाई";
+"settings.thumbnail_height" = "थंबनेल ऊँचाई";
+"settings.spacing_label" = "अंतर";
+"settings.spacing" = "अंतर: %d px";
+"settings.export_format" = "निर्यात फ़ॉर्मेट";
+"settings.colors" = "रंग";
+"settings.background" = "पृष्ठभूमि";
+"settings.metadata_text_color" = "मेटाडेटा टेक्स्ट रंग";
+"settings.hex_placeholder" = "RRGGBB";
+"settings.metadata" = "मेटाडेटा";
+"settings.font_sizes" = "फ़ॉन्ट आकार";
+"settings.file_name_font_size" = "फ़ाइल नाम";
+"settings.duration_font_size" = "अवधि";
+"settings.file_size_font_size" = "फ़ाइल आकार";
+"settings.resolution_font_size" = "रिज़ॉल्यूशन";
+"settings.timestamp_font_size" = "टाइमस्टैम्प";
+"settings.pixel_placeholder" = "डिफ़ॉल्ट: %d";
+"settings.auto" = "ऑटो";
+"settings.show_file_name" = "फ़ाइल नाम दिखाएँ";
+"settings.show_duration" = "अवधि दिखाएँ";
+"settings.show_file_size" = "फ़ाइल आकार दिखाएँ";
+"settings.show_resolution" = "रिज़ॉल्यूशन दिखाएँ";
+"settings.show_timestamp" = "टाइमस्टैम्प दिखाएँ";
+"settings.export_separate_thumbnails" = "थंबनेल अलग से निर्यात करें";
+
+"sidebar.videos" = "वीडियो";
+"sidebar.importing" = "वीडियो आयात हो रहे हैं";
+
+"help.add_videos" = "वीडियो जोड़ें";
+"help.remove_selection" = "चयन हटाएँ";
+"help.settings" = "सेटिंग्स";
+"help.clear_all" = "पूरी सूची साफ करें";
+"help.start" = "रेंडर और निर्यात";
+"toolbar.clear_all" = "साफ करें";
+"toolbar.render" = "रेंडर";
+"menu.check_for_updates" = "अपडेट जाँचें…";
+
+"drop.videos_here" = "वीडियो यहाँ छोड़ें";
+
+"action.start" = "शुरू करें";
+
+"update.available_title" = "अपडेट उपलब्ध";
+"update.available_message" = "वर्तमान संस्करण: %1$@\nनया संस्करण: %2$@";
+"update.release_notes_title" = "रिलीज़ नोट्स";
+"update.no_release_notes" = "कोई रिलीज़ नोट्स उपलब्ध नहीं हैं।";
+"update.open_release_page" = "रिलीज़ खोलें";
+"update.later" = "बाद में";
+"update.up_to_date_title" = "कोई अपडेट उपलब्ध नहीं";
+"update.up_to_date_message" = "आप पहले से नवीनतम संस्करण (%@) का उपयोग कर रहे हैं।";
+"update.error_title" = "अपडेट जाँच असफल";
+"update.error_message" = "अपडेट जाँच पूरी नहीं हो सकी:\n%@";

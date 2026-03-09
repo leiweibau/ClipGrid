@@ -17,6 +17,10 @@ enum AppStrings {
     static func fileError(_ fileName: String, _ message: String) -> String {
         formatted("error.file", fileName, message)
     }
+    static var noExtension: String { text("error.no_extension") }
+    static func unsupportedImportSummary(_ details: String) -> String {
+        formatted("error.unsupported_import_summary", details)
+    }
 
     static var unknownResolution: String { text("metadata.unknown_resolution") }
     static var previewTitle: String { text("preview.placeholder_title") }

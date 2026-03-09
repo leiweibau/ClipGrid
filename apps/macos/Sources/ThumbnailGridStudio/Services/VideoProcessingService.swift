@@ -43,6 +43,7 @@ enum VideoProcessingService {
     static func loadMetadata(for url: URL) async throws -> VideoMetadata {
         let values = try url.resourceValues(forKeys: [.fileSizeKey])
         let bytes = Int64(values.fileSize ?? 0)
+        _ = try loadRenderMetadataWithFFmpeg(for: url)
         return VideoMetadata(
             fileSize: bytes
         )
@@ -145,17 +146,38 @@ enum VideoProcessingService {
         let data = try runTool("ffprobe", arguments: [
             "-v", "error",
             "-select_streams", "v:0",
-            "-show_entries", "stream=width,height:format=duration",
+            "-show_entries", "stream=codec_type,width,height,duration:format=duration,format_name",
             "-of", "json",
             url.path
         ])
 
         let response = try JSONDecoder().decode(FFprobeResponse.self, from: data)
-        let duration = Double(response.format?.duration ?? "") ?? 0
-        let stream = response.streams.first
+        guard let stream = response.streams.first(where: { $0.codecType == "video" }) else {
+            throw VideoProcessingError.unreadableVideo
+        }
+
+        let width = stream.width ?? 0
+        let height = stream.height ?? 0
+        guard width > 0, height > 0 else {
+            throw VideoProcessingError.unreadableVideo
+        }
+
+        let formatName = response.format?.formatName?.lowercased() ?? ""
+        if formatName.contains("image2") || formatName.hasSuffix("_pipe") {
+            throw VideoProcessingError.unreadableVideo
+        }
+
+        let duration = max(
+            Double(response.format?.duration ?? "") ?? 0,
+            Double(stream.duration ?? "") ?? 0
+        )
+        guard duration > 0 else {
+            throw VideoProcessingError.unreadableVideo
+        }
+
         return VideoRenderMetadata(
             duration: duration,
-            resolution: CGSize(width: stream?.width ?? 0, height: stream?.height ?? 0)
+            resolution: CGSize(width: width, height: height)
         )
     }
 
@@ -279,12 +301,27 @@ enum VideoProcessingService {
 
 private struct FFprobeResponse: Decodable {
     struct Stream: Decodable {
+        let codecType: String?
         let width: Double?
         let height: Double?
+        let duration: String?
+
+        enum CodingKeys: String, CodingKey {
+            case codecType = "codec_type"
+            case width
+            case height
+            case duration
+        }
     }
 
     struct Format: Decodable {
         let duration: String?
+        let formatName: String?
+
+        enum CodingKeys: String, CodingKey {
+            case duration
+            case formatName = "format_name"
+        }
     }
 
     let streams: [Stream]

@@ -11,6 +11,8 @@
 "error.unreadable_video" = "Video konnte nicht gelesen werden.";
 "error.no_thumbnails" = "Es konnten keine Thumbnails erzeugt werden.";
 "error.file" = "Fehler bei %@: %@";
+"error.no_extension" = "(ohne Endung)";
+"error.unsupported_import_summary" = "Folgende Dateiendungen wurden wegen fehlender Unterstützung nicht importiert: %@";
 
 "common.ok" = "OK";
 "common.close" = "Schließen";

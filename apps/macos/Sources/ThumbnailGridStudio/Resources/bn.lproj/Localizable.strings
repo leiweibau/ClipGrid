@@ -1,0 +1,80 @@
+"export.jpeg" = "JPEG";
+"export.png" = "PNG";
+
+"status.ready" = "প্রস্তুত";
+"status.generating" = "প্রিভিউ তৈরি করা হচ্ছে";
+"status.preview_ready" = "প্রিভিউ প্রস্তুত";
+"status.exporting" = "রপ্তানি করা হচ্ছে";
+"status.exported" = "রপ্তানি সম্পন্ন";
+
+"error.title" = "ত্রুটি";
+"error.unreadable_video" = "ভিডিও পড়া যায়নি।";
+"error.no_thumbnails" = "থাম্বনেইল তৈরি করা যায়নি।";
+"error.file" = "%@ এর জন্য ত্রুটি: %@";
+"error.no_extension" = "(এক্সটেনশন নেই)";
+"error.unsupported_import_summary" = "নিচের ফাইল এক্সটেনশনগুলো সমর্থিত নয় বলে আমদানি করা হয়নি: %@";
+
+"common.ok" = "ঠিক আছে";
+"common.close" = "বন্ধ করুন";
+
+"metadata.unknown_resolution" = "অজানা রেজোলিউশন";
+
+"preview.placeholder_title" = "প্রিভিউ";
+"preview.generating" = "প্রিভিউ তৈরি করা হচ্ছে";
+
+"settings.title" = "সেটিংস";
+"settings.thumbnails" = "থাম্বনেইল";
+"settings.columns" = "কলাম: %d";
+"settings.rows" = "সারি: %d";
+"settings.render_concurrency" = "সমান্তরাল রেন্ডার কাজ: %d";
+"settings.thumbnail_width" = "থাম্বনেইল প্রস্থ";
+"settings.thumbnail_height" = "থাম্বনেইল উচ্চতা";
+"settings.spacing_label" = "ফাঁক";
+"settings.spacing" = "ফাঁক: %d px";
+"settings.export_format" = "রপ্তানি ফরম্যাট";
+"settings.colors" = "রং";
+"settings.background" = "পটভূমি";
+"settings.metadata_text_color" = "মেটাডেটা টেক্সট রং";
+"settings.hex_placeholder" = "RRGGBB";
+"settings.metadata" = "মেটাডেটা";
+"settings.font_sizes" = "ফন্টের আকার";
+"settings.file_name_font_size" = "ফাইলের নাম";
+"settings.duration_font_size" = "সময়কাল";
+"settings.file_size_font_size" = "ফাইলের আকার";
+"settings.resolution_font_size" = "রেজোলিউশন";
+"settings.timestamp_font_size" = "টাইমস্ট্যাম্প";
+"settings.pixel_placeholder" = "ডিফল্ট: %d";
+"settings.auto" = "স্বয়ংক্রিয়";
+"settings.show_file_name" = "ফাইলের নাম দেখান";
+"settings.show_duration" = "সময়কাল দেখান";
+"settings.show_file_size" = "ফাইলের আকার দেখান";
+"settings.show_resolution" = "রেজোলিউশন দেখান";
+"settings.show_timestamp" = "টাইমস্ট্যাম্প দেখান";
+"settings.export_separate_thumbnails" = "থাম্বনেইল আলাদাভাবে রপ্তানি করুন";
+
+"sidebar.videos" = "ভিডিও";
+"sidebar.importing" = "ভিডিও আমদানি করা হচ্ছে";
+
+"help.add_videos" = "ভিডিও যোগ করুন";
+"help.remove_selection" = "নির্বাচন সরান";
+"help.settings" = "সেটিংস";
+"help.clear_all" = "পুরো তালিকা পরিষ্কার করুন";
+"help.start" = "রেন্ডার ও রপ্তানি";
+"toolbar.clear_all" = "পরিষ্কার করুন";
+"toolbar.render" = "রেন্ডার";
+"menu.check_for_updates" = "আপডেট দেখুন…";
+
+"drop.videos_here" = "ভিডিও এখানে ড্রপ করুন";
+
+"action.start" = "শুরু";
+
+"update.available_title" = "আপডেট উপলব্ধ";
+"update.available_message" = "বর্তমান সংস্করণ: %1$@\nনতুন সংস্করণ: %2$@";
+"update.release_notes_title" = "রিলিজ নোট";
+"update.no_release_notes" = "কোনো রিলিজ নোট উপলব্ধ নেই।";
+"update.open_release_page" = "রিলিজ খুলুন";
+"update.later" = "পরে";
+"update.up_to_date_title" = "কোনো আপডেট উপলব্ধ নেই";
+"update.up_to_date_message" = "আপনি ইতিমধ্যেই সর্বশেষ সংস্করণ (%@) ব্যবহার করছেন।";
+"update.error_title" = "আপডেট পরীক্ষা ব্যর্থ";
+"update.error_message" = "আপডেট পরীক্ষা সম্পন্ন করা যায়নি:\n%@";
