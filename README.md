@@ -4,10 +4,10 @@ Thumbnail Grid Studio is a desktop app for creating contact-sheet style preview 
 
 The repository contains two native implementations:
 
-| Platform | Stack | Status | Release Package | Details |
+| Platform | Stack | Status | Details |
 |---|---|---|---|---|
-| macOS | SwiftUI + Swift CLI | Implemented | [Thumbnail Grid Studio macOS](https://github.com/leiweibau/ThumbnailGridStudio/releases/download/v1.3.1/ThumbnailGridStudio-v1.3.1-macOS.zip) | [README](./apps/macos/README.md) |
-| Windows | WinUI 3 + .NET 8 | Implemented | [Thumbnail Grid Studio Windows](https://github.com/leiweibau/ThumbnailGridStudio/releases/download/v1.3.1/ThumbnailGridStudio-win-x64-fdd.zip) | [README](./apps/windows/README.md) |
+| macOS | SwiftUI + Swift CLI | Implemented | [README](./apps/macos/README.md) |
+| Windows | WinUI 3 + .NET 8 | Implemented | [README](./apps/windows/README.md) |
 
 ## Application Overview
 
