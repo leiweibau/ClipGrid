@@ -2,7 +2,7 @@
 
 This is a vibe-coding project. I do not plan to review pull requests or handle issues for this repository.
 
-Thumbnail Grid Studio is a native Windows app built with WinUI 3 and .NET that imports multiple videos and exports a video preview image for each one as `JPG` or `PNG`.
+Thumbnail Grid Studio is a native Windows app built with WinUI 3 and .NET 10 that imports multiple videos and exports a video preview image for each one as `JPG` or `PNG`.
 
 ![Thumbnail Grid Studio Screenshot](./screen.png)
 
@@ -23,7 +23,7 @@ The most important capabilities in the current version are:
 ## Requirements
 
 - Windows 10 (19041) or newer
-- .NET SDK 8.0+
+- .NET SDK 10.0+
 - Visual Studio Build Tools / Visual Studio with MSBuild support
 
 ## Development

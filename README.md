@@ -7,7 +7,7 @@ The repository contains two native implementations:
 | Platform | Stack | Status | Details |
 |---|---|---|---|
 | macOS | SwiftUI + Swift CLI | Implemented | [README](./apps/macos/README.md) |
-| Windows | WinUI 3 + .NET 8 | Implemented | [README](./apps/windows/README.md) |
+| Windows | WinUI 3 + .NET 10 | Implemented | [README](./apps/windows/README.md) |
 
 ## Application Overview
 
