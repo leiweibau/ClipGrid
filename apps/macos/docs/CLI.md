@@ -50,6 +50,21 @@ The project ships with a native command-line tool: `thumbnail-grid-studio-cli`.
 - `--metadata-color <RRGGBB>`  
   Metadata text color in header. Falls back to GUI setting.
 
+- `--show-title <bool>`  
+  Show or hide the filename header. Falls back to GUI setting.
+
+- `--show-duration <bool>`  
+  Show or hide the duration line in the header. Falls back to GUI setting.
+
+- `--show-file-size <bool>`  
+  Show or hide the file size line in the header. Falls back to GUI setting.
+
+- `--show-resolution <bool>`  
+  Show or hide the resolution line in the header. Falls back to GUI setting.
+
+- `--show-timestamp <bool>`  
+  Show or hide timestamp badges on thumbnails. Falls back to GUI setting.
+
 - `--file-name-font-size <n>`  
   Header file name font size. Falls back to GUI setting.
 
@@ -72,6 +87,7 @@ If a style/layout parameter is not provided via CLI, the tool loads the value fr
 This includes:
 
 - colors
+- metadata visibility
 - font sizes
 - export format
 - grid size
@@ -113,4 +129,15 @@ If no GUI value exists, built-in defaults are used.
   --file-size-font-size 22 \
   --resolution-font-size 22 \
   --timestamp-font-size 16
+```
+
+### 4) Hide selected metadata
+
+```bash
+./thumbnail-grid-studio-cli \
+  --input /Users/you/Movies/demo.mov \
+  --output-dir /Users/you/Exports \
+  --show-file-size false \
+  --show-resolution false \
+  --show-timestamp false
 ```

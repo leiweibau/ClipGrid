@@ -33,6 +33,11 @@ private struct CLIOptions {
     var spacing: Int?
     var backgroundHex: String?
     var metadataTextHex: String?
+    var showFileName: Bool?
+    var showDuration: Bool?
+    var showFileSize: Bool?
+    var showResolution: Bool?
+    var showTimestamp: Bool?
     var fileNameFontSize: CGFloat?
     var durationFontSize: CGFloat?
     var fileSizeFontSize: CGFloat?
@@ -50,6 +55,11 @@ private struct GUISettingsFallback {
     var spacing: Int?
     var backgroundHex: String?
     var metadataTextHex: String?
+    var showFileName: Bool?
+    var showDuration: Bool?
+    var showFileSize: Bool?
+    var showResolution: Bool?
+    var showTimestamp: Bool?
     var fileNameFontSize: CGFloat?
     var durationFontSize: CGFloat?
     var fileSizeFontSize: CGFloat?
@@ -73,6 +83,11 @@ private struct ResolvedRenderOptions {
     let spacing: Int
     let backgroundHex: String
     let metadataTextHex: String
+    let showFileName: Bool
+    let showDuration: Bool
+    let showFileSize: Bool
+    let showResolution: Bool
+    let showTimestamp: Bool
     let fileNameFontSize: CGFloat
     let durationFontSize: CGFloat
     let fileSizeFontSize: CGFloat
@@ -86,6 +101,8 @@ private struct ThumbnailFrame {
 }
 
 private enum CLIRunner {
+    private static let cliVersion = "1.3.3"
+
     static func run() throws {
         configureHeadlessAppKit()
 
@@ -161,6 +178,16 @@ private enum CLIRunner {
                 options.backgroundHex = try parseHex(try argumentValue(args, index: &index, name: "--background"), name: "--background")
             case "--metadata-color":
                 options.metadataTextHex = try parseHex(try argumentValue(args, index: &index, name: "--metadata-color"), name: "--metadata-color")
+            case "--show-title":
+                options.showFileName = try parseBool(try argumentValue(args, index: &index, name: "--show-title"), name: "--show-title")
+            case "--show-duration":
+                options.showDuration = try parseBool(try argumentValue(args, index: &index, name: "--show-duration"), name: "--show-duration")
+            case "--show-file-size":
+                options.showFileSize = try parseBool(try argumentValue(args, index: &index, name: "--show-file-size"), name: "--show-file-size")
+            case "--show-resolution":
+                options.showResolution = try parseBool(try argumentValue(args, index: &index, name: "--show-resolution"), name: "--show-resolution")
+            case "--show-timestamp":
+                options.showTimestamp = try parseBool(try argumentValue(args, index: &index, name: "--show-timestamp"), name: "--show-timestamp")
             case "--file-name-font-size":
                 options.fileNameFontSize = try parsePositiveCGFloat(try argumentValue(args, index: &index, name: "--file-name-font-size"), name: "--file-name-font-size")
             case "--duration-font-size":
@@ -190,6 +217,17 @@ private enum CLIRunner {
         }
         index += 2
         return args[nextIndex]
+    }
+
+    private static func parseBool(_ raw: String, name: String) throws -> Bool {
+        switch raw.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() {
+        case "1", "true", "yes", "on":
+            return true
+        case "0", "false", "no", "off":
+            return false
+        default:
+            throw CLIError.invalidArgument("Invalid value for \(name): \(raw). Expected true/false, 1/0, yes/no, or on/off.")
+        }
     }
 
     private static func parsePositiveInt(_ raw: String, name: String) throws -> Int {
@@ -329,6 +367,11 @@ private enum CLIRunner {
             spacing: max(0, spacing),
             backgroundHex: cli.backgroundHex ?? fallback.backgroundHex ?? "1F2126",
             metadataTextHex: cli.metadataTextHex ?? fallback.metadataTextHex ?? "FFFFFF",
+            showFileName: cli.showFileName ?? fallback.showFileName ?? true,
+            showDuration: cli.showDuration ?? fallback.showDuration ?? true,
+            showFileSize: cli.showFileSize ?? fallback.showFileSize ?? true,
+            showResolution: cli.showResolution ?? fallback.showResolution ?? true,
+            showTimestamp: cli.showTimestamp ?? fallback.showTimestamp ?? true,
             fileNameFontSize: cli.fileNameFontSize ?? fallback.fileNameFontSize ?? 26,
             durationFontSize: cli.durationFontSize ?? fallback.durationFontSize ?? 14,
             fileSizeFontSize: cli.fileSizeFontSize ?? fallback.fileSizeFontSize ?? 14,
@@ -396,6 +439,11 @@ private enum CLIRunner {
                 green: numberValue(domain["settings.metadataTextGreen"]),
                 blue: numberValue(domain["settings.metadataTextBlue"])
             ),
+            showFileName: boolValue(domain["settings.showFileName"]),
+            showDuration: boolValue(domain["settings.showDuration"]),
+            showFileSize: boolValue(domain["settings.showFileSize"]),
+            showResolution: boolValue(domain["settings.showResolution"]),
+            showTimestamp: boolValue(domain["settings.showTimestamp"]),
             fileNameFontSize: positiveCGFloat(from: domain["settings.fileNameFontSizeText"]),
             durationFontSize: positiveCGFloat(from: domain["settings.durationFontSizeText"]),
             fileSizeFontSize: positiveCGFloat(from: domain["settings.fileSizeFontSizeText"]),
@@ -413,6 +461,22 @@ private enum CLIRunner {
     private static func numberValue(_ value: Any?) -> Double? {
         if let number = value as? NSNumber { return number.doubleValue }
         if let string = value as? String { return Double(string) }
+        return nil
+    }
+
+    private static func boolValue(_ value: Any?) -> Bool? {
+        if let bool = value as? Bool { return bool }
+        if let number = value as? NSNumber { return number.boolValue }
+        if let string = value as? String {
+            switch string.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() {
+            case "1", "true", "yes", "on":
+                return true
+            case "0", "false", "no", "off":
+                return false
+            default:
+                return nil
+            }
+        }
         return nil
     }
 
@@ -520,27 +584,35 @@ private enum CLIRunner {
         let resolutionText = "\(max(info.width, 0)) x \(max(info.height, 0)) px"
 
         var currentY = canvasSize.height - verticalPadding
-        let titleLineHeight = lineHeight(for: titleAttributes)
-        title.draw(
-            in: NSRect(x: horizontalPadding, y: currentY - titleLineHeight, width: canvasSize.width - horizontalPadding * 2, height: titleLineHeight),
-            withAttributes: titleAttributes
-        )
-        currentY -= titleLineHeight + 6
+        if options.showFileName {
+            let titleLineHeight = lineHeight(for: titleAttributes)
+            title.draw(
+                in: NSRect(x: horizontalPadding, y: currentY - titleLineHeight, width: canvasSize.width - horizontalPadding * 2, height: titleLineHeight),
+                withAttributes: titleAttributes
+            )
+            currentY -= titleLineHeight + 6
+        }
 
-        let metadataLineHeight = max(lineHeight(for: durationAttributes), lineHeight(for: fileSizeAttributes))
-        let metadataLine = NSMutableAttributedString(string: durationText, attributes: durationAttributes)
-        metadataLine.append(NSAttributedString(string: "  •  ", attributes: durationAttributes))
-        metadataLine.append(NSAttributedString(string: sizeText, attributes: fileSizeAttributes))
-        metadataLine.draw(
-            in: NSRect(x: horizontalPadding, y: currentY - metadataLineHeight, width: canvasSize.width - horizontalPadding * 2, height: metadataLineHeight)
+        let metadataParts = metadataLine(
+            durationText: options.showDuration ? durationText : nil,
+            sizeText: options.showFileSize ? sizeText : nil,
+            durationAttributes: durationAttributes,
+            fileSizeAttributes: fileSizeAttributes
         )
-        currentY -= metadataLineHeight + 4
+        if let metadataLine = metadataParts.line {
+            metadataLine.draw(
+                in: NSRect(x: horizontalPadding, y: currentY - metadataParts.lineHeight, width: canvasSize.width - horizontalPadding * 2, height: metadataParts.lineHeight)
+            )
+            currentY -= metadataParts.lineHeight + 4
+        }
 
-        let resolutionLineHeight = lineHeight(for: resolutionAttributes)
-        resolutionText.draw(
-            in: NSRect(x: horizontalPadding, y: currentY - resolutionLineHeight, width: canvasSize.width - horizontalPadding * 2, height: resolutionLineHeight),
-            withAttributes: resolutionAttributes
-        )
+        if options.showResolution {
+            let resolutionLineHeight = lineHeight(for: resolutionAttributes)
+            resolutionText.draw(
+                in: NSRect(x: horizontalPadding, y: currentY - resolutionLineHeight, width: canvasSize.width - horizontalPadding * 2, height: resolutionLineHeight),
+                withAttributes: resolutionAttributes
+            )
+        }
 
         for row in 0..<options.rows {
             for column in 0..<options.columns {
@@ -557,7 +629,8 @@ private enum CLIRunner {
                 drawThumbnail(
                     thumbnails[index],
                     in: frame,
-                    timestampFontSize: options.timestampFontSize
+                    timestampFontSize: options.timestampFontSize,
+                    showTimestamp: options.showTimestamp
                 )
             }
         }
@@ -581,9 +654,15 @@ private enum CLIRunner {
         ]
 
         var height: CGFloat = 18
-        height += lineHeight(for: titleAttributes) + 10
-        height += max(lineHeight(for: durationAttributes), lineHeight(for: fileSizeAttributes)) + 8
-        height += lineHeight(for: resolutionAttributes) + 6
+        if options.showFileName {
+            height += lineHeight(for: titleAttributes) + 10
+        }
+        if options.showDuration || options.showFileSize {
+            height += max(lineHeight(for: durationAttributes), lineHeight(for: fileSizeAttributes)) + 8
+        }
+        if options.showResolution {
+            height += lineHeight(for: resolutionAttributes) + 6
+        }
         return max(height, 18)
     }
 
@@ -591,7 +670,7 @@ private enum CLIRunner {
         ceil(("Ag" as NSString).size(withAttributes: attributes).height)
     }
 
-    private static func drawThumbnail(_ thumbnail: ThumbnailFrame, in frame: NSRect, timestampFontSize: CGFloat) {
+    private static func drawThumbnail(_ thumbnail: ThumbnailFrame, in frame: NSRect, timestampFontSize: CGFloat, showTimestamp: Bool) {
         let image = thumbnail.image
         let sourceSize = image.size
         guard sourceSize.width > 0, sourceSize.height > 0 else { return }
@@ -606,8 +685,32 @@ private enum CLIRunner {
         let clipPath = NSBezierPath(roundedRect: frame, xRadius: 10, yRadius: 10)
         clipPath.addClip()
         image.draw(in: drawRect)
-        drawTimestamp(timestampText(for: thumbnail.timestamp), in: frame, fontSize: timestampFontSize)
+        if showTimestamp {
+            drawTimestamp(timestampText(for: thumbnail.timestamp), in: frame, fontSize: timestampFontSize)
+        }
         NSGraphicsContext.restoreGraphicsState()
+    }
+
+    private static func metadataLine(
+        durationText: String?,
+        sizeText: String?,
+        durationAttributes: [NSAttributedString.Key: Any],
+        fileSizeAttributes: [NSAttributedString.Key: Any]
+    ) -> (line: NSMutableAttributedString?, lineHeight: CGFloat) {
+        let lineHeight = max(lineHeight(for: durationAttributes), lineHeight(for: fileSizeAttributes))
+        let line = NSMutableAttributedString()
+
+        if let durationText {
+            line.append(NSAttributedString(string: durationText, attributes: durationAttributes))
+        }
+        if let durationText, !durationText.isEmpty, let sizeText, !sizeText.isEmpty {
+            line.append(NSAttributedString(string: "  •  ", attributes: durationAttributes))
+        }
+        if let sizeText {
+            line.append(NSAttributedString(string: sizeText, attributes: fileSizeAttributes))
+        }
+
+        return (line.length > 0 ? line : nil, lineHeight)
     }
 
     private static func drawTimestamp(_ text: String, in frame: NSRect, fontSize: CGFloat) {
@@ -836,7 +939,7 @@ private enum CLIRunner {
     private static func printHelp() {
         print(
             """
-            Thumbnail Grid Studio CLI
+            Thumbnail Grid Studio CLI \(cliVersion)
 
             Usage:
               thumbnail-grid-studio-cli --input <video> [--input <video> ...] --output-dir <directory> [options]
@@ -854,6 +957,11 @@ private enum CLIRunner {
               --spacing <px>          Spacing in pixels (fallback: GUI setting).
               --background <RRGGBB>   Grid background color as hex (fallback: GUI setting).
               --metadata-color <RRGGBB> Metadata text color as hex (fallback: GUI setting).
+              --show-title <bool>     Show filename header (fallback: GUI setting).
+              --show-duration <bool>  Show duration in header (fallback: GUI setting).
+              --show-file-size <bool> Show file size in header (fallback: GUI setting).
+              --show-resolution <bool> Show resolution in header (fallback: GUI setting).
+              --show-timestamp <bool> Show timestamp badge on thumbnails (fallback: GUI setting).
               --file-name-font-size <n> Header filename font size (fallback: GUI setting).
               --duration-font-size <n> Header duration font size (fallback: GUI setting).
               --file-size-font-size <n> Header file size font size (fallback: GUI setting).
