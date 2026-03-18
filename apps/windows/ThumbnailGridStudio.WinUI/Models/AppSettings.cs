@@ -19,11 +19,11 @@ public sealed class AppSettings : ObservableObject
     private int _exportFormatIndex;
     private string _backgroundHex = "1F2126";
     private string _metadataHex = "FFFFFF";
-    private float _fileNameFontSize = 22f;
-    private float _durationFontSize = 20f;
-    private float _fileSizeFontSize = 20f;
-    private float _resolutionFontSize = 20f;
-    private float _timestampFontSize = 16f;
+    private float _fileNameFontSize = 26f;
+    private float _durationFontSize = 14f;
+    private float _fileSizeFontSize = 14f;
+    private float _resolutionFontSize = 14f;
+    private float _timestampFontSize = 12f;
     private bool _showFileName = true;
     private bool _showDuration = true;
     private bool _showFileSize = true;

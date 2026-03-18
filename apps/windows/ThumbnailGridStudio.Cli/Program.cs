@@ -268,9 +268,11 @@ internal static class Program
                 case "rows":
                     settings.RowsText = value;
                     break;
+                case "width":
                 case "thumb-width":
                     settings.ThumbnailWidthText = NormalizeDimensionValue(value);
                     break;
+                case "height":
                 case "thumb-height":
                     settings.ThumbnailHeightText = NormalizeDimensionValue(value);
                     break;
@@ -283,6 +285,7 @@ internal static class Program
                 case "background":
                     settings.BackgroundHex = value;
                     break;
+                case "metadata-color":
                 case "text-color":
                     settings.MetadataHex = value;
                     break;
@@ -392,16 +395,16 @@ Usage:
 
 Options:
   -i, --input <path>            Input video file or directory (repeatable)
-  -o, --output <dir>            Output directory (default: %USERPROFILE%\Pictures\ThumbnailGridStudio\Exports)
+  -o, --output-dir <dir>        Output directory (default: %USERPROFILE%\Pictures\ThumbnailGridStudio\Exports)
       --recursive <bool>        Scan directories recursively (default: true)
       --columns <int>
       --rows <int>
-      --thumb-width <int|auto>
-      --thumb-height <int|auto>
+      --width <int|auto>
+      --height <int|auto>
       --spacing <int>
       --format <jpg|png>
       --background <HEX>
-      --text-color <HEX>
+      --metadata-color <HEX>
       --show-title <bool>
       --show-duration <bool>
       --show-file-size <bool>
@@ -420,6 +423,7 @@ Notes:
   Settings are loaded from the GUI app settings file first
   (%LOCALAPPDATA%\ThumbnailGridStudio\settings.json).
   Any CLI option above overrides the loaded settings.
+  Legacy aliases are still accepted: --output, --thumb-width, --thumb-height, --text-color.
 """);
     }
 
@@ -473,6 +477,7 @@ Notes:
                         options.InputPaths.Add(ReadValue(args, ref i, arg));
                         break;
                     case "-o":
+                    case "--output-dir":
                     case "--output":
                         options.OutputDirectory = ReadValue(args, ref i, arg);
                         break;

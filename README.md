@@ -40,3 +40,4 @@ The repository contains two native implementations:
 - [macOS README](./apps/macos/README.md)
 - [Windows README](./apps/windows/README.md)
 - [macOS CLI Documentation](./apps/macos/docs/CLI.md)
+- [Windows CLI Documentation](./apps/windows/docs/CLI.md)

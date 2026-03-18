@@ -282,7 +282,7 @@ if ([string]::IsNullOrWhiteSpace($msbuildExtensionsPath) -or -not (Test-Path $ms
     dotnet publish $project `
         -c $Configuration `
         -r $Runtime `
-        --self-contained true `
+        --self-contained false `
         -p:Platform=$Platform `
         -p:PublishSingleFile=false `
         -o $publishOutputDir
@@ -296,7 +296,7 @@ Write-Host "Using MSBuildExtensionsPath: $msbuildExtensionsPath"
 dotnet publish $project `
     -c $Configuration `
     -r $Runtime `
-    --self-contained true `
+    --self-contained false `
     -p:Platform=$Platform `
     -p:PublishSingleFile=false `
     -p:MSBuildExtensionsPath="$msbuildExtensionsPath" `

@@ -125,6 +125,10 @@ private enum CLIRunner {
 
     private static func parseArguments(_ args: [String]) throws -> CLIOptions {
         var options = CLIOptions()
+        guard !args.isEmpty else {
+            options.showHelp = true
+            return options
+        }
         var index = 0
 
         while index < args.count {

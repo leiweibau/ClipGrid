@@ -36,15 +36,13 @@ powershell -ExecutionPolicy Bypass -File .\apps\windows\build-winui.ps1 -Configu
 For publish output:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\apps\windows\publish-winui-selfcontained.ps1 -Configuration Release -Runtime win-x64 -Platform x64
+powershell -ExecutionPolicy Bypass -File .\apps\windows\publish-winui.ps1 -Configuration Release -Runtime win-x64 -Platform x64
 ```
 
 The publish script also places `ThumbnailGridStudio-cli.exe` in the same app directory
 (`apps/windows/dist/Thumbnail Grid Studio`) and includes it in the generated ZIP.
-The CLI is framework-dependent; the publish script additionally downloads
+The GUI and CLI are framework-dependent; the publish script additionally downloads
 `dotnet-runtime-10.0.3-win-x64.exe` into the same directory so the required runtime can be installed offline.
-The publish step removes app-local `hostfxr.dll` to avoid host resolution conflicts between
-the self-contained GUI files and the framework-dependent CLI executable.
 
 Build CLI:
 
@@ -57,7 +55,7 @@ Run CLI:
 ```powershell
 dotnet run --project .\apps\windows\ThumbnailGridStudio.Cli\ThumbnailGridStudio.Cli.csproj -- `
   --input "D:\Videos" `
-  --output "D:\Exports" `
+  --output-dir "D:\Exports" `
   --columns 5 `
   --rows 4 `
   --format png `
@@ -66,6 +64,7 @@ dotnet run --project .\apps\windows\ThumbnailGridStudio.Cli\ThumbnailGridStudio.
 
 The CLI first loads GUI settings from `%LOCALAPPDATA%\ThumbnailGridStudio\settings.json`.
 All passed CLI parameters override the loaded values.
+Detailed CLI option reference: [docs/CLI.md](./docs/CLI.md)
 
 ## Project Structure
 
@@ -74,7 +73,7 @@ All passed CLI parameters override the loaded values.
 - `apps/windows/ThumbnailGridStudio.WinUI/Assets`: app icon assets
 - `apps/windows/ThumbnailGridStudio.WinUI/Tools/win-x64`: bundled `ffmpeg` and `ffprobe`
 - `apps/windows/build-winui.ps1`: local build script
-- `apps/windows/publish-winui-selfcontained.ps1`: publish script and artifact copy step
+- `apps/windows/publish-winui.ps1`: publish script and artifact copy step
 - `apps/windows/screen.png`: Windows app screenshot
 
 ## Build Output
