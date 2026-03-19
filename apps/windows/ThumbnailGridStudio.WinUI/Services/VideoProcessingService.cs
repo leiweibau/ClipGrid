@@ -55,7 +55,7 @@ public sealed class VideoProcessingService
             _tools.FfprobePath,
             [
                 "-v", "error",
-                "-show_entries", "stream=codec_type,codec_name,width,height,duration,bit_rate:format=duration,bit_rate",
+                "-show_entries", "stream=codec_type,codec_name,width,height,duration,bit_rate:stream_tags=language:format=duration,bit_rate",
                 "-of", "json",
                 filePath
             ],
@@ -109,7 +109,7 @@ public sealed class VideoProcessingService
             BitrateBitsPerSecond: Math.Max(bitrate, 0),
             VideoCodec: NormalizeCodec(videoStream.CodecName),
             AudioCodecs: audioStreams
-                .Select(stream => NormalizeCodec(stream.CodecName))
+                .Select(stream => BuildAudioCodecWithLanguage(stream.CodecName, stream.Tags?.Language))
                 .Where(codec => !string.IsNullOrWhiteSpace(codec))
                 .ToList());
     }
@@ -348,6 +348,9 @@ public sealed class VideoProcessingService
 
         [JsonPropertyName("bit_rate")]
         public string? BitRate { get; init; }
+
+        [JsonPropertyName("tags")]
+        public FfprobeStreamTags? Tags { get; init; }
     }
 
     private sealed class FfprobeFormat
@@ -357,6 +360,12 @@ public sealed class VideoProcessingService
 
         [JsonPropertyName("bit_rate")]
         public string? BitRate { get; init; }
+    }
+
+    private sealed class FfprobeStreamTags
+    {
+        [JsonPropertyName("language")]
+        public string? Language { get; init; }
     }
 
     private static double ParseDurationSeconds(string? value)
@@ -397,5 +406,32 @@ public sealed class VideoProcessingService
     private static string NormalizeCodec(string? codecName)
     {
         return string.IsNullOrWhiteSpace(codecName) ? string.Empty : codecName.Trim();
+    }
+
+    private static string BuildAudioCodecWithLanguage(string? codecName, string? languageTag)
+    {
+        var codec = NormalizeCodec(codecName);
+        if (string.IsNullOrWhiteSpace(codec))
+        {
+            return string.Empty;
+        }
+
+        var language = NormalizeLanguageTag(languageTag);
+        return string.IsNullOrWhiteSpace(language)
+            ? codec
+            : $"{codec} ({language})";
+    }
+
+    private static string NormalizeLanguageTag(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return string.Empty;
+        }
+
+        var normalized = value.Trim().ToLowerInvariant().Replace('_', '-');
+        return normalized is "und" or "unknown" or "unk"
+            ? string.Empty
+            : normalized;
     }
 }
