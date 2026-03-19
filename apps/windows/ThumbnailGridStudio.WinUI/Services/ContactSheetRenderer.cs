@@ -1,6 +1,7 @@
-using System.Drawing;
-using System.Drawing.Imaging;
+﻿using System.Drawing;
 using System.Drawing.Drawing2D;
+using System.Drawing.Imaging;
+using System.Globalization;
 using ThumbnailGridStudio.WinUI.Models;
 
 namespace ThumbnailGridStudio.WinUI.Services;
@@ -13,6 +14,9 @@ public static class ContactSheetRenderer
         long fileSizeBytes,
         int width,
         int height,
+        long bitrateBitsPerSecond,
+        string videoCodec,
+        IReadOnlyList<string> audioCodecs,
         AppSettings settings,
         string outputPath)
     {
@@ -31,7 +35,10 @@ public static class ContactSheetRenderer
                 Duration: duration,
                 Width: width,
                 Height: height,
-                FileSizeBytes: fileSizeBytes);
+                FileSizeBytes: fileSizeBytes,
+                BitrateBitsPerSecond: bitrateBitsPerSecond,
+                VideoCodec: videoCodec,
+                AudioCodecs: audioCodecs ?? Array.Empty<string>());
 
             RenderAndSave(metadata, title, frames, settings, outputPath);
         }
@@ -58,15 +65,15 @@ public static class ContactSheetRenderer
         var thumbHeight = thumbnails.Count > 0 ? Math.Max(thumbnails[0].Image.Height, 1) : settings.ThumbnailHeight;
         var gridWidth = settings.Columns * thumbWidth + Math.Max(0, settings.Columns - 1) * settings.Spacing;
         var gridHeight = settings.Rows * thumbHeight + Math.Max(0, settings.Rows - 1) * settings.Spacing;
-        var headerHeight = CalculateHeaderHeight(settings);
+        var headerHeight = CalculateHeaderHeight(metadata, settings);
         var canvasWidth = horizontalPadding * 2 + gridWidth;
         var canvasHeight = verticalPadding * 2 + headerHeight + metadataToGridGap + gridHeight;
 
         using var bitmap = new Bitmap(canvasWidth, canvasHeight);
         using var graphics = Graphics.FromImage(bitmap);
-        graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
-        graphics.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBicubic;
-        graphics.PixelOffsetMode = System.Drawing.Drawing2D.PixelOffsetMode.HighQuality;
+        graphics.SmoothingMode = SmoothingMode.AntiAlias;
+        graphics.InterpolationMode = InterpolationMode.HighQualityBicubic;
+        graphics.PixelOffsetMode = PixelOffsetMode.HighQuality;
         graphics.Clear(ParseHexColor(settings.BackgroundHex, Color.FromArgb(31, 33, 38)));
 
         var headerTop = verticalPadding;
@@ -80,48 +87,147 @@ public static class ContactSheetRenderer
 
     private static void DrawHeader(Graphics graphics, VideoMetadata metadata, string fileName, AppSettings settings, int leftPadding, int topY)
     {
+        var labelTitle = IsGermanUi() ? "Titel" : "Title";
+        var labelDuration = IsGermanUi() ? "Dauer" : "Duration";
+        var labelSize = IsGermanUi() ? "Größe" : "Size";
+        var labelResolution = IsGermanUi() ? "Auflösung" : "Resolution";
+        var labelBitrate = "Bitrate";
+        var labelVideo = "Video";
+        var labelAudio = "Audio";
+        var unknownValue = IsGermanUi() ? "unbekannt" : "unknown";
+        const float secondColumnGapPx = 150f;
+
         using var titleBrush = new SolidBrush(Color.White);
         using var metaBrush = new SolidBrush(ParseHexColor(settings.MetadataHex, Color.White));
         using var titleFont = new Font(FontFamily.GenericSansSerif, settings.FileNameFontSize, FontStyle.Bold);
         using var durationFont = new Font(FontFamily.GenericSansSerif, settings.DurationFontSize, FontStyle.Regular);
         using var fileSizeFont = new Font(FontFamily.GenericSansSerif, settings.FileSizeFontSize, FontStyle.Regular);
         using var resolutionFont = new Font(FontFamily.GenericSansSerif, settings.ResolutionFontSize, FontStyle.Regular);
+        using var bitrateFont = new Font(FontFamily.GenericSansSerif, settings.BitrateFontSize, FontStyle.Regular);
+        using var videoCodecFont = new Font(FontFamily.GenericSansSerif, settings.VideoCodecFontSize, FontStyle.Regular);
+        using var audioCodecFont = new Font(FontFamily.GenericSansSerif, settings.AudioCodecFontSize, FontStyle.Regular);
 
         var y = topY;
         if (settings.ShowFileName)
         {
-            var titleText = Path.GetFileName(fileName);
+            var titleText = $"{labelTitle}: {Path.GetFileName(fileName)}";
             var titleSize = graphics.MeasureString(titleText, titleFont);
             graphics.DrawString(titleText, titleFont, titleBrush, new PointF(leftPadding, y));
             y += (int)Math.Ceiling(titleSize.Height) + 6;
         }
 
-        var line2Parts = new List<string>(2);
-        if (settings.ShowDuration)
+        var durationText = settings.ShowDuration ? $"{labelDuration}: {FormatDuration(metadata.Duration)}" : null;
+        var fileSizeText = settings.ShowFileSize ? $"{labelSize}: {FormatFileSize(metadata.FileSizeBytes)}" : null;
+        var resolutionText = settings.ShowResolution ? $"{labelResolution}: {Math.Max(metadata.Width, 0)} x {Math.Max(metadata.Height, 0)}" : null;
+        var bitrateText = settings.ShowBitrate ? $"{labelBitrate}: {FormatBitrate(metadata.BitrateBitsPerSecond, unknownValue)}" : null;
+
+        var firstColumnWidth = 0f;
+        if (!string.IsNullOrWhiteSpace(durationText))
         {
-            line2Parts.Add(FormatDuration(metadata.Duration));
+            firstColumnWidth = Math.Max(firstColumnWidth, graphics.MeasureString(durationText, durationFont).Width);
         }
 
-        if (settings.ShowFileSize)
+        if (!string.IsNullOrWhiteSpace(resolutionText))
         {
-            line2Parts.Add(FormatFileSize(metadata.FileSizeBytes));
+            firstColumnWidth = Math.Max(firstColumnWidth, graphics.MeasureString(resolutionText, resolutionFont).Width);
         }
 
-        if (line2Parts.Count > 0)
+        var secondColumnX = leftPadding + firstColumnWidth + (firstColumnWidth > 0f ? secondColumnGapPx : 0f);
+
+        if (!string.IsNullOrWhiteSpace(durationText) || !string.IsNullOrWhiteSpace(fileSizeText))
         {
-            var line2 = string.Join("  •  ", line2Parts);
-            graphics.DrawString(line2, durationFont, metaBrush, new PointF(leftPadding, y));
-            var line2Size = graphics.MeasureString(line2, durationFont);
-            y += (int)Math.Ceiling(line2Size.Height) + 4;
+            var line2Height = 0f;
+            if (!string.IsNullOrWhiteSpace(durationText))
+            {
+                graphics.DrawString(durationText, durationFont, metaBrush, new PointF(leftPadding, y));
+                line2Height = Math.Max(line2Height, graphics.MeasureString(durationText, durationFont).Height);
+            }
+
+            if (!string.IsNullOrWhiteSpace(fileSizeText))
+            {
+                var fileSizeX = !string.IsNullOrWhiteSpace(durationText) ? secondColumnX : leftPadding;
+                graphics.DrawString(fileSizeText, fileSizeFont, metaBrush, new PointF(fileSizeX, y));
+                line2Height = Math.Max(line2Height, graphics.MeasureString(fileSizeText, fileSizeFont).Height);
+            }
+
+            y += (int)Math.Ceiling(line2Height) + 4;
         }
 
-        if (settings.ShowResolution)
+        if (!string.IsNullOrWhiteSpace(resolutionText) || !string.IsNullOrWhiteSpace(bitrateText))
         {
-            var resolution = $"{Math.Max(metadata.Width, 0)} x {Math.Max(metadata.Height, 0)} px";
-            graphics.DrawString(resolution, resolutionFont, metaBrush, new PointF(leftPadding, y));
-            var line3Size = graphics.MeasureString(resolution, resolutionFont);
-            y += (int)Math.Ceiling(line3Size.Height);
+            var line3Height = 0f;
+            if (!string.IsNullOrWhiteSpace(resolutionText))
+            {
+                graphics.DrawString(resolutionText, resolutionFont, metaBrush, new PointF(leftPadding, y));
+                line3Height = Math.Max(line3Height, graphics.MeasureString(resolutionText, resolutionFont).Height);
+            }
+
+            if (!string.IsNullOrWhiteSpace(bitrateText))
+            {
+                var bitrateX = !string.IsNullOrWhiteSpace(resolutionText) ? secondColumnX : leftPadding;
+                graphics.DrawString(bitrateText, bitrateFont, metaBrush, new PointF(bitrateX, y));
+                line3Height = Math.Max(line3Height, graphics.MeasureString(bitrateText, bitrateFont).Height);
+            }
+
+            y += (int)Math.Ceiling(line3Height) + 4;
         }
+
+        if (settings.ShowVideoCodec)
+        {
+            var videoText = $"{labelVideo}: {FormatCodec(metadata.VideoCodec, unknownValue)}";
+            graphics.DrawString(videoText, videoCodecFont, metaBrush, new PointF(leftPadding, y));
+            var line4Size = graphics.MeasureString(videoText, videoCodecFont);
+            y += (int)Math.Ceiling(line4Size.Height) + 4;
+        }
+
+        if (settings.ShowAudioCodec)
+        {
+            IReadOnlyList<string> audioCodecs = metadata.AudioCodecs is { Count: > 0 }
+                ? metadata.AudioCodecs
+                : new List<string> { unknownValue };
+
+            foreach (var codec in audioCodecs)
+            {
+                var audioText = $"{labelAudio}: {FormatCodec(codec, unknownValue)}";
+                graphics.DrawString(audioText, audioCodecFont, metaBrush, new PointF(leftPadding, y));
+                var lineSize = graphics.MeasureString(audioText, audioCodecFont);
+                y += (int)Math.Ceiling(lineSize.Height) + 4;
+            }
+        }
+    }
+
+    private static void DrawSegmentLine(
+        Graphics graphics,
+        Brush brush,
+        float x,
+        float y,
+        IReadOnlyList<(string Text, Font Font)> segments,
+        string separator,
+        out int lineHeight)
+    {
+        var cursorX = x;
+        var maxHeight = 0f;
+
+        for (var i = 0; i < segments.Count; i++)
+        {
+            var segment = segments[i];
+            graphics.DrawString(segment.Text, segment.Font, brush, new PointF(cursorX, y));
+            var segmentSize = graphics.MeasureString(segment.Text, segment.Font);
+            cursorX += segmentSize.Width;
+            maxHeight = Math.Max(maxHeight, segmentSize.Height);
+
+            if (i >= segments.Count - 1)
+            {
+                continue;
+            }
+
+            var separatorSize = graphics.MeasureString(separator, segment.Font);
+            graphics.DrawString(separator, segment.Font, brush, new PointF(cursorX, y));
+            cursorX += separatorSize.Width;
+            maxHeight = Math.Max(maxHeight, separatorSize.Height);
+        }
+
+        lineHeight = (int)Math.Ceiling(maxHeight);
     }
 
     private static void DrawGrid(
@@ -192,11 +298,16 @@ public static class ContactSheetRenderer
         graphics.DrawString(text, font, textBrush, new PointF(badge.X + 6f, badge.Y + 3f));
     }
 
-    private static int CalculateHeaderHeight(AppSettings settings)
+    private static int CalculateHeaderHeight(VideoMetadata metadata, AppSettings settings)
     {
         using var titleFont = new Font(FontFamily.GenericSansSerif, settings.FileNameFontSize, FontStyle.Bold);
         using var durationFont = new Font(FontFamily.GenericSansSerif, settings.DurationFontSize, FontStyle.Regular);
+        using var fileSizeFont = new Font(FontFamily.GenericSansSerif, settings.FileSizeFontSize, FontStyle.Regular);
         using var resolutionFont = new Font(FontFamily.GenericSansSerif, settings.ResolutionFontSize, FontStyle.Regular);
+        using var bitrateFont = new Font(FontFamily.GenericSansSerif, settings.BitrateFontSize, FontStyle.Regular);
+        using var videoCodecFont = new Font(FontFamily.GenericSansSerif, settings.VideoCodecFontSize, FontStyle.Regular);
+        using var audioCodecFont = new Font(FontFamily.GenericSansSerif, settings.AudioCodecFontSize, FontStyle.Regular);
+
         var height = 18;
         if (settings.ShowFileName)
         {
@@ -205,12 +316,25 @@ public static class ContactSheetRenderer
 
         if (settings.ShowDuration || settings.ShowFileSize)
         {
-            height += (int)Math.Ceiling(durationFont.GetHeight()) + 8;
+            var line2Height = Math.Max(durationFont.GetHeight(), fileSizeFont.GetHeight());
+            height += (int)Math.Ceiling(line2Height) + 8;
         }
 
-        if (settings.ShowResolution)
+        if (settings.ShowResolution || settings.ShowBitrate)
         {
-            height += (int)Math.Ceiling(resolutionFont.GetHeight()) + 6;
+            var line3Height = Math.Max(resolutionFont.GetHeight(), bitrateFont.GetHeight());
+            height += (int)Math.Ceiling(line3Height) + 6;
+        }
+
+        if (settings.ShowVideoCodec)
+        {
+            height += (int)Math.Ceiling(videoCodecFont.GetHeight()) + 6;
+        }
+
+        if (settings.ShowAudioCodec)
+        {
+            var audioLineCount = Math.Max(metadata.AudioCodecs?.Count ?? 0, 1);
+            height += audioLineCount * ((int)Math.Ceiling(audioCodecFont.GetHeight()) + 6);
         }
 
         return Math.Max(height, 18);
@@ -261,6 +385,37 @@ public static class ContactSheetRenderer
         return $"{value:0.##} {suffixes[suffix]}";
     }
 
+    private static string FormatBitrate(long bitrateBitsPerSecond, string unknownText)
+    {
+        if (bitrateBitsPerSecond <= 0)
+        {
+            return unknownText;
+        }
+
+        var kbps = bitrateBitsPerSecond / 1000d;
+        if (kbps >= 1000d)
+        {
+            return string.Create(CultureInfo.InvariantCulture, $"{kbps / 1000d:0.##} Mbps");
+        }
+
+        return string.Create(CultureInfo.InvariantCulture, $"{kbps:0} kbps");
+    }
+
+    private static string FormatCodec(string? codecName, string unknownText)
+    {
+        if (string.IsNullOrWhiteSpace(codecName))
+        {
+            return unknownText;
+        }
+
+        return codecName.Trim();
+    }
+
+    private static bool IsGermanUi()
+    {
+        return string.Equals(CultureInfo.CurrentUICulture.TwoLetterISOLanguageName, "de", StringComparison.OrdinalIgnoreCase);
+    }
+
     private static Bitmap CreatePlaceholderThumbnail(int width, int height)
     {
         var w = Math.Max(width, 1);
@@ -292,5 +447,4 @@ public static class ContactSheetRenderer
 
         return bitmap;
     }
-
 }

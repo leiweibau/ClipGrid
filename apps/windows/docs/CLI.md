@@ -47,11 +47,17 @@ Short forms:
 | `--show-file-size` | `<bool>` | Show file size |
 | `--show-resolution` | `<bool>` | Show resolution |
 | `--show-timestamp` | `<bool>` | Show timestamp inside each thumbnail |
+| `--show-bitrate` | `<bool>` | Show video bitrate |
+| `--show-video-codec` | `<bool>` | Show video codec |
+| `--show-audio-codec` | `<bool>` | Show audio codec (repeated per audio track) |
 | `--title-font` | `<px>` | Title font size |
 | `--duration-font` | `<px>` | Duration font size |
 | `--file-size-font` | `<px>` | File size font size |
 | `--resolution-font` | `<px>` | Resolution font size |
 | `--timestamp-font` | `<px>` | Timestamp font size |
+| `--bitrate-font` | `<px>` | Bitrate font size |
+| `--video-codec-font` | `<px>` | Video codec font size |
+| `--audio-codec-font` | `<px>` | Audio codec font size |
 | `--export-separate` | `<bool>` | Export additional single thumbnail images |
 | `--concurrency` | `<1-8>` | Parallel render concurrency |
 | `-h`, `--help` | (none) | Show help |

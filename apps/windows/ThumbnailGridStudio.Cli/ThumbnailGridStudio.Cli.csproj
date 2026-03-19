@@ -20,6 +20,7 @@
     <Compile Include="..\ThumbnailGridStudio.WinUI\Services\FfmpegService.cs" Link="Shared\Services\FfmpegService.cs" />
     <Compile Include="..\ThumbnailGridStudio.WinUI\Services\VideoProcessingService.cs" Link="Shared\Services\VideoProcessingService.cs" />
     <Compile Include="..\ThumbnailGridStudio.WinUI\Services\ContactSheetRenderer.cs" Link="Shared\Services\ContactSheetRenderer.cs" />
+    <Compile Include="..\ThumbnailGridStudio.WinUI\Services\OutputPathResolver.cs" Link="Shared\Services\OutputPathResolver.cs" />
   </ItemGroup>
 
   <ItemGroup>

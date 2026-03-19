@@ -117,9 +117,9 @@ internal static class Program
 
             try
             {
-                var outputPath = Path.Combine(
+                var outputPath = OutputPathResolver.GetUniqueFilePath(Path.Combine(
                     outputDirectory,
-                    $"{Path.GetFileNameWithoutExtension(inputPath)}.{settings.ExportFileExtension}");
+                    $"{Path.GetFileNameWithoutExtension(inputPath)}.{settings.ExportFileExtension}"));
 
                 ContactSheetRenderer.RenderAndSave(metadata, Path.GetFileName(inputPath), thumbnails, settings, outputPath);
 
@@ -174,7 +174,7 @@ internal static class Program
         }
 
         var stem = Path.GetFileNameWithoutExtension(inputPath);
-        var folder = Path.Combine(outputDirectory, stem);
+        var folder = OutputPathResolver.GetUniqueDirectoryPath(Path.Combine(outputDirectory, stem));
         Directory.CreateDirectory(folder);
 
         var format = exportFormatIndex == 1
@@ -304,6 +304,15 @@ internal static class Program
                 case "show-timestamp":
                     settings.ShowTimestamp = ParseBool(value, key);
                     break;
+                case "show-bitrate":
+                    settings.ShowBitrate = ParseBool(value, key);
+                    break;
+                case "show-video-codec":
+                    settings.ShowVideoCodec = ParseBool(value, key);
+                    break;
+                case "show-audio-codec":
+                    settings.ShowAudioCodec = ParseBool(value, key);
+                    break;
                 case "title-font":
                     settings.FileNameFontSize = ParseFloat(value, key);
                     break;
@@ -318,6 +327,15 @@ internal static class Program
                     break;
                 case "timestamp-font":
                     settings.TimestampFontSize = ParseFloat(value, key);
+                    break;
+                case "bitrate-font":
+                    settings.BitrateFontSize = ParseFloat(value, key);
+                    break;
+                case "video-codec-font":
+                    settings.VideoCodecFontSize = ParseFloat(value, key);
+                    break;
+                case "audio-codec-font":
+                    settings.AudioCodecFontSize = ParseFloat(value, key);
                     break;
                 case "export-separate":
                     settings.ExportSeparateThumbnails = ParseBool(value, key);
@@ -410,11 +428,17 @@ Options:
       --show-file-size <bool>
       --show-resolution <bool>
       --show-timestamp <bool>
+      --show-bitrate <bool>
+      --show-video-codec <bool>
+      --show-audio-codec <bool>
       --title-font <px>
       --duration-font <px>
       --file-size-font <px>
       --resolution-font <px>
       --timestamp-font <px>
+      --bitrate-font <px>
+      --video-codec-font <px>
+      --audio-codec-font <px>
       --export-separate <bool>
       --concurrency <1-8>
   -h, --help                    Show this help

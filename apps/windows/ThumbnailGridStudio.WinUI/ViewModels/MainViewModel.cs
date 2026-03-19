@@ -185,7 +185,10 @@ public sealed class MainViewModel : ObservableObject
                         Duration = result.Metadata.Duration,
                         FileSizeBytes = result.Metadata.FileSizeBytes,
                         Width = result.Metadata.Width,
-                        Height = result.Metadata.Height
+                        Height = result.Metadata.Height,
+                        BitrateBitsPerSecond = result.Metadata.BitrateBitsPerSecond,
+                        VideoCodec = result.Metadata.VideoCodec,
+                        AudioCodecs = result.Metadata.AudioCodecs ?? Array.Empty<string>()
                     };
 
                     Videos.Add(item);
@@ -329,10 +332,17 @@ public sealed class MainViewModel : ObservableObject
                     thumbSize.Height,
                     item.Duration)).ToList();
 
-                var metadata = new VideoMetadata(item.Duration, item.Width, item.Height, item.FileSizeBytes);
-                var output = Path.Combine(
+                var metadata = new VideoMetadata(
+                    item.Duration,
+                    item.Width,
+                    item.Height,
+                    item.FileSizeBytes,
+                    item.BitrateBitsPerSecond,
+                    item.VideoCodec,
+                    item.AudioCodecs);
+                var output = OutputPathResolver.GetUniqueFilePath(Path.Combine(
                     outputDirectory,
-                    $"{Path.GetFileNameWithoutExtension(item.FileName)}.{Settings.ExportFileExtension}");
+                    $"{Path.GetFileNameWithoutExtension(item.FileName)}.{Settings.ExportFileExtension}"));
 
                 ContactSheetRenderer.RenderAndSave(metadata, item.FileName, thumbnails, Settings, output);
                 item.OutputPath = output;
@@ -480,6 +490,9 @@ public sealed class MainViewModel : ObservableObject
                 0,
                 0,
                 0,
+                0,
+                string.Empty,
+                Array.Empty<string>(),
                 cancellationToken);
             return;
         }
@@ -516,6 +529,9 @@ public sealed class MainViewModel : ObservableObject
                 item.FileSizeBytes,
                 item.Width,
                 item.Height,
+                item.BitrateBitsPerSecond,
+                item.VideoCodec,
+                item.AudioCodecs,
                 cancellationToken);
         }
         catch (OperationCanceledException)
@@ -534,6 +550,9 @@ public sealed class MainViewModel : ObservableObject
         long fileSizeBytes,
         int width,
         int height,
+        long bitrateBitsPerSecond,
+        string videoCodec,
+        IReadOnlyList<string> audioCodecs,
         CancellationToken cancellationToken)
     {
         var previewPath = Path.Combine(_previewDirectory, $"placeholder-{Guid.NewGuid():N}.preview.jpg");
@@ -546,6 +565,9 @@ public sealed class MainViewModel : ObservableObject
                 fileSizeBytes,
                 width,
                 height,
+                bitrateBitsPerSecond,
+                videoCodec,
+                audioCodecs,
                 Settings,
                 previewPath);
         }, cancellationToken);
@@ -652,7 +674,7 @@ public sealed class MainViewModel : ObservableObject
         }
 
         var stem = Path.GetFileNameWithoutExtension(item.FileName);
-        var folder = Path.Combine(outputDirectory, stem);
+        var folder = OutputPathResolver.GetUniqueDirectoryPath(Path.Combine(outputDirectory, stem));
         Directory.CreateDirectory(folder);
 
         for (var i = 0; i < thumbnails.Count; i++)

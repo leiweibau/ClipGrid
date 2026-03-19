@@ -13,6 +13,9 @@ public sealed class VideoItem : ObservableObject
     public required long FileSizeBytes { get; init; }
     public required int Width { get; init; }
     public required int Height { get; init; }
+    public required long BitrateBitsPerSecond { get; init; }
+    public required string VideoCodec { get; init; }
+    public required IReadOnlyList<string> AudioCodecs { get; init; }
 
     public string MetadataText =>
         $"{FormatDuration(Duration)}  •  {FormatFileSize(FileSizeBytes)}  •  {Math.Max(Width, 0)} x {Math.Max(Height, 0)} px";

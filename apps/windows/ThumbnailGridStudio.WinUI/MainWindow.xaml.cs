@@ -406,7 +406,15 @@ public sealed partial class MainWindow : Window
 
     private void RootDragOver(object sender, DragEventArgs e)
     {
-        e.AcceptedOperation = DataPackageOperation.Copy;
+        var hasStorageItems = e.DataView.Contains(StandardDataFormats.StorageItems);
+        e.AcceptedOperation = hasStorageItems ? DataPackageOperation.Copy : DataPackageOperation.None;
+        if (!hasStorageItems)
+        {
+            return;
+        }
+
+        e.DragUIOverride.IsCaptionVisible = true;
+        e.DragUIOverride.Caption = L("DragDrop.Insert", "Einfügen");
     }
 
     private async void RootDrop(object sender, DragEventArgs e)
@@ -561,16 +569,22 @@ public sealed partial class MainWindow : Window
         var bgHex = new TextBox { Header = L("Settings.BgHex", "Hintergrundfarbe (HEX-Code)"), Text = settings.BackgroundHex };
         var textHex = new TextBox { Header = L("Settings.TextHex", "Schriftfarbe (HEX-Code)"), Text = settings.MetadataHex };
         var exportSeparate = new CheckBox { Content = L("Settings.ExportSeparate", "Separate Thumbnails exportieren"), IsChecked = settings.ExportSeparateThumbnails };
-        var titleVisible = new CheckBox { Content = L("Settings.ShowTitle", "Titel anzeigen"), IsChecked = settings.ShowFileName };
+        var titleVisible = new CheckBox { Content = L("Settings.ShowTitle", "Titel"), IsChecked = settings.ShowFileName };
         var titleFontPx = new TextBox { Text = settings.FileNameFontSize.ToString("0", CultureInfo.InvariantCulture), PlaceholderText = "12" };
-        var durationVisible = new CheckBox { Content = L("Settings.ShowDuration", "Laufzeit anzeigen"), IsChecked = settings.ShowDuration };
+        var durationVisible = new CheckBox { Content = L("Settings.ShowDuration", "Laufzeit"), IsChecked = settings.ShowDuration };
         var durationFontPx = new TextBox { Text = settings.DurationFontSize.ToString("0", CultureInfo.InvariantCulture), PlaceholderText = "12" };
-        var timestampVisible = new CheckBox { Content = L("Settings.ShowTimestamp", "Timestamp anzeigen"), IsChecked = settings.ShowTimestamp };
+        var timestampVisible = new CheckBox { Content = L("Settings.ShowTimestamp", "Timestamp"), IsChecked = settings.ShowTimestamp };
         var timestampFontPx = new TextBox { Text = settings.TimestampFontSize.ToString("0", CultureInfo.InvariantCulture), PlaceholderText = "12" };
-        var fileSizeVisible = new CheckBox { Content = L("Settings.ShowFileSize", "DateigrÃ¶ÃŸe anzeigen"), IsChecked = settings.ShowFileSize };
+        var fileSizeVisible = new CheckBox { Content = L("Settings.ShowFileSize", "Größe"), IsChecked = settings.ShowFileSize };
         var fileSizeFontPx = new TextBox { Text = settings.FileSizeFontSize.ToString("0", CultureInfo.InvariantCulture), PlaceholderText = "12" };
-        var resolutionVisible = new CheckBox { Content = L("Settings.ShowResolution", "AuflÃ¶sung anzeigen"), IsChecked = settings.ShowResolution };
+        var resolutionVisible = new CheckBox { Content = L("Settings.ShowResolution", "Auflösung"), IsChecked = settings.ShowResolution };
         var resolutionFontPx = new TextBox { Text = settings.ResolutionFontSize.ToString("0", CultureInfo.InvariantCulture), PlaceholderText = "12" };
+        var bitrateVisible = new CheckBox { Content = L("Settings.ShowBitrate", "Bitrate"), IsChecked = settings.ShowBitrate };
+        var bitrateFontPx = new TextBox { Text = settings.BitrateFontSize.ToString("0", CultureInfo.InvariantCulture), PlaceholderText = "12" };
+        var videoCodecVisible = new CheckBox { Content = L("Settings.ShowVideoCodec", "Video-Codec"), IsChecked = settings.ShowVideoCodec };
+        var videoCodecFontPx = new TextBox { Text = settings.VideoCodecFontSize.ToString("0", CultureInfo.InvariantCulture), PlaceholderText = "12" };
+        var audioCodecVisible = new CheckBox { Content = L("Settings.ShowAudioCodec", "Audio-Codec"), IsChecked = settings.ShowAudioCodec };
+        var audioCodecFontPx = new TextBox { Text = settings.AudioCodecFontSize.ToString("0", CultureInfo.InvariantCulture), PlaceholderText = "12" };
         var renderConcurrency = new NumberBox
         {
             Header = L("Settings.RenderConcurrency", "ParallelitÃ¤t"),
@@ -643,11 +657,14 @@ public sealed partial class MainWindow : Window
         var leftMetaBlock = new StackPanel { Spacing = 8 };
         leftMetaBlock.Children.Add(BuildMetadataRow(titleVisible, titleFontPx));
         leftMetaBlock.Children.Add(BuildMetadataRow(durationVisible, durationFontPx));
+        leftMetaBlock.Children.Add(BuildMetadataRow(fileSizeVisible, fileSizeFontPx));
         leftMetaBlock.Children.Add(BuildMetadataRow(timestampVisible, timestampFontPx));
 
         var rightMetaBlock = new StackPanel { Spacing = 8 };
-        rightMetaBlock.Children.Add(BuildMetadataRow(fileSizeVisible, fileSizeFontPx));
         rightMetaBlock.Children.Add(BuildMetadataRow(resolutionVisible, resolutionFontPx));
+        rightMetaBlock.Children.Add(BuildMetadataRow(bitrateVisible, bitrateFontPx));
+        rightMetaBlock.Children.Add(BuildMetadataRow(videoCodecVisible, videoCodecFontPx));
+        rightMetaBlock.Children.Add(BuildMetadataRow(audioCodecVisible, audioCodecFontPx));
 
         metadataBlocks.Children.Add(leftMetaBlock);
         if (useTwoColumns)
@@ -799,6 +816,12 @@ public sealed partial class MainWindow : Window
         settings.FileSizeFontSize = ParseFontPx(fileSizeFontPx.Text, settings.FileSizeFontSize);
         settings.ShowResolution = resolutionVisible.IsChecked == true;
         settings.ResolutionFontSize = ParseFontPx(resolutionFontPx.Text, settings.ResolutionFontSize);
+        settings.ShowBitrate = bitrateVisible.IsChecked == true;
+        settings.BitrateFontSize = ParseFontPx(bitrateFontPx.Text, settings.BitrateFontSize);
+        settings.ShowVideoCodec = videoCodecVisible.IsChecked == true;
+        settings.VideoCodecFontSize = ParseFontPx(videoCodecFontPx.Text, settings.VideoCodecFontSize);
+        settings.ShowAudioCodec = audioCodecVisible.IsChecked == true;
+        settings.AudioCodecFontSize = ParseFontPx(audioCodecFontPx.Text, settings.AudioCodecFontSize);
         settings.RenderConcurrency = (int)Math.Round(renderConcurrency.Value);
     }
 

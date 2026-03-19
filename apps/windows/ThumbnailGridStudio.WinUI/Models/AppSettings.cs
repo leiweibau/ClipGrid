@@ -20,15 +20,21 @@ public sealed class AppSettings : ObservableObject
     private string _backgroundHex = "1F2126";
     private string _metadataHex = "FFFFFF";
     private float _fileNameFontSize = 26f;
-    private float _durationFontSize = 14f;
-    private float _fileSizeFontSize = 14f;
-    private float _resolutionFontSize = 14f;
+    private float _durationFontSize = 18f;
+    private float _fileSizeFontSize = 18f;
+    private float _resolutionFontSize = 18f;
     private float _timestampFontSize = 12f;
+    private float _bitrateFontSize = 18f;
+    private float _videoCodecFontSize = 16f;
+    private float _audioCodecFontSize = 16f;
     private bool _showFileName = true;
     private bool _showDuration = true;
     private bool _showFileSize = true;
     private bool _showResolution = true;
     private bool _showTimestamp = true;
+    private bool _showBitrate = true;
+    private bool _showVideoCodec = true;
+    private bool _showAudioCodec = true;
     private bool _exportSeparateThumbnails;
     private int _renderConcurrency = 1;
 
@@ -149,6 +155,24 @@ public sealed class AppSettings : ObservableObject
         set => SetProperty(ref _timestampFontSize, Math.Clamp(value, 8f, 96f));
     }
 
+    public float BitrateFontSize
+    {
+        get => _bitrateFontSize;
+        set => SetProperty(ref _bitrateFontSize, Math.Clamp(value, 8f, 96f));
+    }
+
+    public float VideoCodecFontSize
+    {
+        get => _videoCodecFontSize;
+        set => SetProperty(ref _videoCodecFontSize, Math.Clamp(value, 8f, 96f));
+    }
+
+    public float AudioCodecFontSize
+    {
+        get => _audioCodecFontSize;
+        set => SetProperty(ref _audioCodecFontSize, Math.Clamp(value, 8f, 96f));
+    }
+
     public bool ShowFileName
     {
         get => _showFileName;
@@ -177,6 +201,24 @@ public sealed class AppSettings : ObservableObject
     {
         get => _showTimestamp;
         set => SetProperty(ref _showTimestamp, value);
+    }
+
+    public bool ShowBitrate
+    {
+        get => _showBitrate;
+        set => SetProperty(ref _showBitrate, value);
+    }
+
+    public bool ShowVideoCodec
+    {
+        get => _showVideoCodec;
+        set => SetProperty(ref _showVideoCodec, value);
+    }
+
+    public bool ShowAudioCodec
+    {
+        get => _showAudioCodec;
+        set => SetProperty(ref _showAudioCodec, value);
     }
 
     public bool ExportSeparateThumbnails
@@ -327,11 +369,17 @@ public sealed class AppSettings : ObservableObject
             FileSizeFontSize = FileSizeFontSize,
             ResolutionFontSize = ResolutionFontSize,
             TimestampFontSize = TimestampFontSize,
+            BitrateFontSize = BitrateFontSize,
+            VideoCodecFontSize = VideoCodecFontSize,
+            AudioCodecFontSize = AudioCodecFontSize,
             ShowFileName = ShowFileName,
             ShowDuration = ShowDuration,
             ShowFileSize = ShowFileSize,
             ShowResolution = ShowResolution,
             ShowTimestamp = ShowTimestamp,
+            ShowBitrate = ShowBitrate,
+            ShowVideoCodec = ShowVideoCodec,
+            ShowAudioCodec = ShowAudioCodec,
             ExportSeparateThumbnails = ExportSeparateThumbnails,
             RenderConcurrency = RenderConcurrency
         };
@@ -352,11 +400,17 @@ public sealed class AppSettings : ObservableObject
         FileSizeFontSize = snapshot.FileSizeFontSize ?? FileSizeFontSize;
         ResolutionFontSize = snapshot.ResolutionFontSize ?? ResolutionFontSize;
         TimestampFontSize = snapshot.TimestampFontSize ?? TimestampFontSize;
+        BitrateFontSize = snapshot.BitrateFontSize ?? BitrateFontSize;
+        VideoCodecFontSize = snapshot.VideoCodecFontSize ?? VideoCodecFontSize;
+        AudioCodecFontSize = snapshot.AudioCodecFontSize ?? AudioCodecFontSize;
         ShowFileName = snapshot.ShowFileName ?? ShowFileName;
         ShowDuration = snapshot.ShowDuration ?? ShowDuration;
         ShowFileSize = snapshot.ShowFileSize ?? ShowFileSize;
         ShowResolution = snapshot.ShowResolution ?? ShowResolution;
         ShowTimestamp = snapshot.ShowTimestamp ?? ShowTimestamp;
+        ShowBitrate = snapshot.ShowBitrate ?? ShowBitrate;
+        ShowVideoCodec = snapshot.ShowVideoCodec ?? ShowVideoCodec;
+        ShowAudioCodec = snapshot.ShowAudioCodec ?? ShowAudioCodec;
         ExportSeparateThumbnails = snapshot.ExportSeparateThumbnails ?? ExportSeparateThumbnails;
         RenderConcurrency = snapshot.RenderConcurrency ?? RenderConcurrency;
     }
@@ -376,11 +430,17 @@ public sealed class AppSettings : ObservableObject
         public float? FileSizeFontSize { get; init; }
         public float? ResolutionFontSize { get; init; }
         public float? TimestampFontSize { get; init; }
+        public float? BitrateFontSize { get; init; }
+        public float? VideoCodecFontSize { get; init; }
+        public float? AudioCodecFontSize { get; init; }
         public bool? ShowFileName { get; init; }
         public bool? ShowDuration { get; init; }
         public bool? ShowFileSize { get; init; }
         public bool? ShowResolution { get; init; }
         public bool? ShowTimestamp { get; init; }
+        public bool? ShowBitrate { get; init; }
+        public bool? ShowVideoCodec { get; init; }
+        public bool? ShowAudioCodec { get; init; }
         public bool? ExportSeparateThumbnails { get; init; }
         public int? RenderConcurrency { get; init; }
     }

@@ -6,7 +6,14 @@ using System.Text.Json.Serialization;
 
 namespace ThumbnailGridStudio.WinUI.Services;
 
-public sealed record VideoMetadata(TimeSpan Duration, int Width, int Height, long FileSizeBytes);
+public sealed record VideoMetadata(
+    TimeSpan Duration,
+    int Width,
+    int Height,
+    long FileSizeBytes,
+    long BitrateBitsPerSecond,
+    string VideoCodec,
+    IReadOnlyList<string> AudioCodecs);
 
 public sealed class ThumbnailFrame : IDisposable
 {
@@ -48,8 +55,7 @@ public sealed class VideoProcessingService
             _tools.FfprobePath,
             [
                 "-v", "error",
-                "-select_streams", "v:0",
-                "-show_entries", "stream=width,height,duration:format=duration",
+                "-show_entries", "stream=codec_type,codec_name,width,height,duration,bit_rate:format=duration,bit_rate",
                 "-of", "json",
                 filePath
             ],
@@ -66,29 +72,46 @@ public sealed class VideoProcessingService
             new JsonSerializerOptions { PropertyNameCaseInsensitive = true })
                       ?? throw new InvalidOperationException("ffprobe JSON konnte nicht gelesen werden.");
 
-        var stream = payload.Streams.FirstOrDefault();
-        if (stream is null)
+        var videoStream = payload.Streams.FirstOrDefault(stream =>
+            string.Equals(stream.CodecType, "video", StringComparison.OrdinalIgnoreCase));
+        var audioStreams = payload.Streams
+            .Where(stream => string.Equals(stream.CodecType, "audio", StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        if (videoStream is null)
         {
             throw new InvalidOperationException("No video stream found.");
         }
 
-        var width = (int)Math.Round(stream?.Width ?? 0);
-        var height = (int)Math.Round(stream?.Height ?? 0);
+        var width = (int)Math.Round(videoStream.Width ?? 0);
+        var height = (int)Math.Round(videoStream.Height ?? 0);
         var seconds = ParseDurationSeconds(payload.Format?.Duration);
         if (seconds <= 0)
         {
-            seconds = ParseDurationSeconds(stream?.Duration);
+            seconds = ParseDurationSeconds(videoStream.Duration);
         }
         if (seconds <= 0)
         {
             throw new InvalidOperationException("Unsupported media type: missing valid video duration.");
         }
 
+        var bitrate = ParseBitrateBitsPerSecond(payload.Format?.BitRate);
+        if (bitrate <= 0)
+        {
+            bitrate = ParseBitrateBitsPerSecond(videoStream.BitRate);
+        }
+
         return new VideoMetadata(
             Duration: TimeSpan.FromSeconds(Math.Max(seconds, 0)),
             Width: Math.Max(width, 0),
             Height: Math.Max(height, 0),
-            FileSizeBytes: info.Exists ? info.Length : 0);
+            FileSizeBytes: info.Exists ? info.Length : 0,
+            BitrateBitsPerSecond: Math.Max(bitrate, 0),
+            VideoCodec: NormalizeCodec(videoStream.CodecName),
+            AudioCodecs: audioStreams
+                .Select(stream => NormalizeCodec(stream.CodecName))
+                .Where(codec => !string.IsNullOrWhiteSpace(codec))
+                .ToList());
     }
 
     public async Task<IReadOnlyList<ThumbnailFrame>> GenerateThumbnailsAsync(
@@ -308,6 +331,12 @@ public sealed class VideoProcessingService
 
     private sealed class FfprobeStream
     {
+        [JsonPropertyName("codec_type")]
+        public string? CodecType { get; init; }
+
+        [JsonPropertyName("codec_name")]
+        public string? CodecName { get; init; }
+
         [JsonPropertyName("width")]
         public double? Width { get; init; }
 
@@ -316,12 +345,18 @@ public sealed class VideoProcessingService
 
         [JsonPropertyName("duration")]
         public string? Duration { get; init; }
+
+        [JsonPropertyName("bit_rate")]
+        public string? BitRate { get; init; }
     }
 
     private sealed class FfprobeFormat
     {
         [JsonPropertyName("duration")]
         public string? Duration { get; init; }
+
+        [JsonPropertyName("bit_rate")]
+        public string? BitRate { get; init; }
     }
 
     private static double ParseDurationSeconds(string? value)
@@ -342,5 +377,25 @@ public sealed class VideoProcessingService
         }
 
         return seconds;
+    }
+
+    private static long ParseBitrateBitsPerSecond(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return 0;
+        }
+
+        if (!long.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var bitrate))
+        {
+            return 0;
+        }
+
+        return bitrate > 0 ? bitrate : 0;
+    }
+
+    private static string NormalizeCodec(string? codecName)
+    {
+        return string.IsNullOrWhiteSpace(codecName) ? string.Empty : codecName.Trim();
     }
 }
