@@ -7,15 +7,20 @@ BUILD_ROOT="$ROOT_DIR/.cache/ffmpeg-build"
 INSTALL_ROOT="$ROOT_DIR/.cache/ffmpeg-install"
 SDKROOT="$(xcrun --sdk macosx --show-sdk-path)"
 MIN_VERSION="13.0"
+FFMPEG_REF="30a811cc7d878184646e35fb94e72c5b964d575e"
+FFMPEG_REMOTE_URL="https://github.com/FFmpeg/FFmpeg"
 
 clone_source() {
   if [ -d "$SOURCE_DIR/.git" ]; then
-    git -C "$SOURCE_DIR" fetch --depth 1 origin
-    git -C "$SOURCE_DIR" reset --hard origin/master
+    git -C "$SOURCE_DIR" fetch --depth 1 origin "$FFMPEG_REF"
   else
     rm -rf "$SOURCE_DIR"
-    git clone --depth 1 https://github.com/FFmpeg/FFmpeg "$SOURCE_DIR"
+    git init "$SOURCE_DIR" >/dev/null
+    git -C "$SOURCE_DIR" remote add origin "$FFMPEG_REMOTE_URL"
+    git -C "$SOURCE_DIR" fetch --depth 1 origin "$FFMPEG_REF"
   fi
+
+  git -C "$SOURCE_DIR" checkout --detach "$FFMPEG_REF" >/dev/null
 }
 
 build_arch() {
@@ -61,4 +66,4 @@ clone_source
 build_arch "x86_64" "x86_64"
 build_arch "arm64" "aarch64"
 
-echo "Built FFmpeg into $INSTALL_ROOT"
+echo "Built FFmpeg $FFMPEG_REF into $INSTALL_ROOT"

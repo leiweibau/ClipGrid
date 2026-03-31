@@ -23,6 +23,7 @@ The most important capabilities in the current version are:
 
 - macOS 13 or newer
 - Xcode Command Line Tools or Xcode with Swift 6
+- `nasm` available on `PATH` for `ffmpeg` builds
 
 ## Development
 
@@ -42,7 +43,7 @@ Detailed CLI documentation:
 - `Sources/ThumbnailGridStudio`: SwiftUI app, view models, renderer, and services
 - `Sources/ThumbnailGridStudio/Resources`: localized `Localizable.strings` and preview placeholder artwork
 - `Resources/Info.plist`: bundle metadata for the packaged app
-- `Scripts/build-ffmpeg.sh`: builds bundled `ffmpeg` and `ffprobe` binaries from the official FFmpeg source
+- `Scripts/build-ffmpeg.sh`: builds bundled `ffmpeg` and `ffprobe` binaries from a pinned official FFmpeg revision
 - `Scripts/package-app.sh`: builds the native `.app` bundle
 - `icon.png`: source image for the app icon
 
@@ -54,6 +55,13 @@ bash Scripts/package-app.sh
 ```
 
 After that, the native macOS app will be available at `dist/Thumbnail Grid Studio.app`.
+
+The packaging step also creates `dist/ThumbnailGridStudio-<version>-macOS-universal.zip`.
+
+## Reproducible Build Notes
+
+- `Scripts/build-ffmpeg.sh` is pinned to FFmpeg revision `30a811cc7d878184646e35fb94e72c5b964d575e`.
+- The macOS shell scripts are tracked with LF line endings via Git attributes. Keep those files on LF to avoid `pipefail` shell errors.
 
 ## Running an Unnotarized Build
 

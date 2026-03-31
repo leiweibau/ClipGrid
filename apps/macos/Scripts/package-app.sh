@@ -23,6 +23,8 @@ ICON_SOURCE="$ROOT_DIR/icon.png"
 ICON_PREPARED="$ROOT_DIR/Resources/AppIconSource.png"
 ICONSET_DIR="/tmp/${EXECUTABLE_NAME}.iconset"
 ICON_OUTPUT="$ROOT_DIR/Resources/AppIcon.icns"
+SWIFTPM_MODULE_CACHE_DIR="$ROOT_DIR/.cache/swiftpm-module"
+CLANG_MODULE_CACHE_DIR="$ROOT_DIR/.cache/clang-module"
 
 require_bundled_tool() {
   local path="$1"
@@ -38,11 +40,11 @@ require_bundled_tool "$FFMPEG_X86_DIR/ffprobe"
 require_bundled_tool "$FFMPEG_ARM_DIR/ffmpeg"
 require_bundled_tool "$FFMPEG_ARM_DIR/ffprobe"
 
-mkdir -p /tmp/swiftpm-module /tmp/clang-module
+mkdir -p "$SWIFTPM_MODULE_CACHE_DIR" "$CLANG_MODULE_CACHE_DIR"
 
 cd "$ROOT_DIR"
-env SWIFTPM_MODULECACHE_OVERRIDE=/tmp/swiftpm-module CLANG_MODULE_CACHE_PATH=/tmp/clang-module swift build -c release --arch x86_64
-env SWIFTPM_MODULECACHE_OVERRIDE=/tmp/swiftpm-module CLANG_MODULE_CACHE_PATH=/tmp/clang-module swift build -c release --arch arm64
+env SWIFTPM_MODULECACHE_OVERRIDE="$SWIFTPM_MODULE_CACHE_DIR" CLANG_MODULE_CACHE_PATH="$CLANG_MODULE_CACHE_DIR" swift build -c release --arch x86_64
+env SWIFTPM_MODULECACHE_OVERRIDE="$SWIFTPM_MODULE_CACHE_DIR" CLANG_MODULE_CACHE_PATH="$CLANG_MODULE_CACHE_DIR" swift build -c release --arch arm64
 
 if [ -f "$ICON_SOURCE" ]; then
   swift "$ROOT_DIR/Scripts/prepare-icon.swift" "$ICON_SOURCE" "$ICON_PREPARED"
