@@ -28,6 +28,11 @@ let package = Package(
         .executableTarget(
             name: "ThumbnailGridStudioCLI",
             path: "Sources/ThumbnailGridStudioCLI"
+        ),
+        .testTarget(
+            name: "ThumbnailGridStudioTests",
+            dependencies: ["ThumbnailGridStudio"],
+            path: "Tests/ThumbnailGridStudioTests"
         )
     ]
 )

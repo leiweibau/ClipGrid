@@ -104,52 +104,41 @@ final class AppViewModel: ObservableObject {
             importTotalCount = 0
         }
 
-        var loadedItems: [(Int, Result<VideoMetadata, Error>)] = []
-        loadedItems.reserveCapacity(newURLs.count)
-
-        var startIndex = 0
-        while startIndex < newURLs.count {
-            let endIndex = min(startIndex + Self.maxConcurrentImports, newURLs.count)
-            let batch = Array(newURLs[startIndex..<endIndex].enumerated()).map { offset, url in
-                (index: startIndex + offset, url: url)
-            }
-
-            let batchResults = await withTaskGroup(of: (Int, Result<VideoMetadata, Error>).self) { group in
-                for entry in batch {
-                    group.addTask {
-                        do {
-                            let metadata = try await VideoProcessingService.loadMetadata(for: entry.url)
-                            return (entry.index, .success(metadata))
-                        } catch {
-                            return (entry.index, .failure(error))
-                        }
-                    }
-                }
-
-                var results: [(Int, Result<VideoMetadata, Error>)] = []
-                for await result in group {
-                    results.append(result)
-                    await MainActor.run {
-                        self.importCompletedCount += 1
-                    }
-                }
-                return results
-            }
-
-            loadedItems.append(contentsOf: batchResults)
-            startIndex = endIndex
+        let importJobs = newURLs.enumerated().map {
+            ImportJobInput(index: $0.offset, url: $0.element)
         }
+        let loadedItems = await RollingTaskPool.map(
+            importJobs,
+            maxConcurrent: Self.maxConcurrentImports,
+            onComplete: { _ in
+                await MainActor.run {
+                    self.importCompletedCount += 1
+                }
+            },
+            operation: { job in
+                do {
+                    return ImportJobResult(
+                        index: job.index,
+                        result: .success(try await VideoProcessingService.loadMetadata(for: job.url))
+                    )
+                } catch {
+                    return ImportJobResult(index: job.index, result: .failure(error.localizedDescription))
+                }
+            }
+        )
 
-        loadedItems.sort { $0.0 < $1.0 }
         var failedURLs: [URL] = []
 
-        for (index, result) in loadedItems {
+        for loadedItem in loadedItems {
+            let index = loadedItem.index
+            let result = loadedItem.result
             switch result {
             case .success(let metadata):
                 let item = VideoItem(
                     url: newURLs[index],
-                    duration: 0,
+                    duration: metadata.duration,
                     fileSize: metadata.fileSize,
+                    resolution: metadata.resolution,
                     bitrateBitsPerSecond: metadata.bitrateBitsPerSecond,
                     videoCodec: metadata.videoCodec,
                     audioCodecs: metadata.audioCodecs
@@ -303,44 +292,6 @@ final class AppViewModel: ObservableObject {
         return image
     }
 
-    private func generatePreview(for item: VideoItem) async {
-        item.status = .generating
-        do {
-            if item.resolution == .zero || item.duration == 0 {
-                let renderMetadata = try await VideoProcessingService.loadRenderMetadata(for: item.url)
-                item.duration = renderMetadata.duration
-                item.resolution = renderMetadata.resolution
-                item.bitrateBitsPerSecond = renderMetadata.bitrateBitsPerSecond
-                item.videoCodec = renderMetadata.videoCodec
-                item.audioCodecs = renderMetadata.audioCodecs
-            }
-
-            let thumbnailSize = settings.resolvedThumbnailSize(for: item.resolution)
-            let thumbnails = try await VideoProcessingService.generateThumbnails(
-                for: item.url,
-                count: settings.columns * settings.rows,
-                maxSize: thumbnailSize
-            )
-
-            let image = ContactSheetRenderer.render(
-                title: AppStrings.previewTitle,
-                durationText: "00:00",
-                resolutionText: "0 x 0",
-                fileSizeText: "0 B",
-                bitrateText: AppStrings.metadataUnknownValue,
-                videoCodecText: AppStrings.metadataUnknownValue,
-                audioCodecTexts: [AppStrings.metadataUnknownValue],
-                thumbnails: thumbnails,
-                options: renderOptions(for: item)
-            )
-
-            item.previewImage = image
-            item.status = .ready
-        } catch {
-            item.status = .failed(error.localizedDescription)
-        }
-    }
-
     private func renderAndExportAll(to directory: URL) async {
         isRendering = true
         isExporting = true
@@ -364,47 +315,35 @@ final class AppViewModel: ObservableObject {
             )
         }
 
-        var startIndex = 0
-        while startIndex < inputs.count {
-            let endIndex = min(startIndex + max(settings.renderConcurrency, 1), inputs.count)
-            let batch = Array(inputs[startIndex..<endIndex])
+        for item in videos {
+            item.status = .generating
+        }
 
-            for input in batch {
-                if let item = videos.first(where: { $0.id == input.id }) {
-                    item.status = .generating
-                }
-            }
+        _ = await RollingTaskPool.map(
+            inputs,
+            maxConcurrent: max(settings.renderConcurrency, 1),
+            onComplete: { result in
+                await MainActor.run {
+                    guard let item = self.videos.first(where: { $0.id == result.id }) else { return }
 
-            let results = await withTaskGroup(of: RenderJobResult.self) { group in
-                for input in batch {
-                    group.addTask {
-                        await Self.processRenderJob(input: input, directory: directory, configuration: configuration)
+                    switch result.outcome {
+                    case .success(let image, let metadata, let targetURL):
+                        item.duration = metadata.duration
+                        item.resolution = metadata.resolution
+                        item.bitrateBitsPerSecond = metadata.bitrateBitsPerSecond
+                        item.videoCodec = metadata.videoCodec
+                        item.audioCodecs = metadata.audioCodecs
+                        item.previewImage = image
+                        item.status = .exported(targetURL)
+                    case .failure(let message):
+                        item.status = .failed(message)
                     }
                 }
-
-                var completed: [RenderJobResult] = []
-                for await result in group {
-                    completed.append(result)
-                }
-                return completed
+            },
+            operation: { input in
+                await Self.processRenderJob(input: input, directory: directory, configuration: configuration)
             }
-
-            for result in results {
-                guard let item = videos.first(where: { $0.id == result.id }) else { continue }
-
-                switch result.outcome {
-                case .success(let image, let duration, let resolution, let targetURL):
-                    item.duration = duration
-                    item.resolution = resolution
-                    item.previewImage = image
-                    item.status = .exported(targetURL)
-                case .failure(let message):
-                    item.status = .failed(message)
-                }
-            }
-
-            startIndex = endIndex
-        }
+        )
     }
 
     private func placeholderPreviewCacheKey(for item: VideoItem?) -> String {
@@ -865,11 +804,13 @@ final class AppViewModel: ObservableObject {
         return AppStrings.unsupportedImportSummary(details)
     }
 
-    private static func processRenderJob(
+    nonisolated private static func processRenderJob(
         input: RenderJobInput,
         directory: URL,
         configuration: RenderConfiguration
     ) async -> RenderJobResult {
+        var createdSeparateThumbnailFolder: URL?
+        var createdOutputURL: URL?
         do {
             var duration = input.duration
             var resolution = input.resolution
@@ -877,7 +818,7 @@ final class AppViewModel: ObservableObject {
             var videoCodec = input.videoCodec
             var audioCodecs = input.audioCodecs
 
-            if resolution == .zero || duration == 0 || bitrateBitsPerSecond == 0 || videoCodec.isEmpty || audioCodecs.isEmpty {
+            if resolution == .zero || duration == 0 || videoCodec.isEmpty {
                 let renderMetadata = try await VideoProcessingService.loadRenderMetadata(for: input.url)
                 duration = renderMetadata.duration
                 resolution = renderMetadata.resolution
@@ -886,11 +827,44 @@ final class AppViewModel: ObservableObject {
                 audioCodecs = renderMetadata.audioCodecs
             }
 
+            let targetURL = directory.appendingPathComponent(
+                outputFileName(fileName: input.fileName, exportFormat: configuration.exportFormat)
+            )
+            try ensurePathDoesNotExist(targetURL)
+
+            let separateThumbnailFolder: URL?
+            if configuration.exportSeparateThumbnails {
+                let folder = separateThumbnailFolderURL(for: input.fileName, in: directory)
+                try ensurePathDoesNotExist(folder)
+                try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+                createdSeparateThumbnailFolder = folder
+                separateThumbnailFolder = folder
+            } else {
+                separateThumbnailFolder = nil
+            }
+
+            let fullResolutionFrameHandler: (@Sendable (Int, ThumbnailFrame) async throws -> Void)?
+            if let separateThumbnailFolder {
+                let exportFormat = configuration.exportFormat
+                fullResolutionFrameHandler = { index, thumbnail in
+                    try writeSeparateThumbnail(
+                        thumbnail,
+                        index: index,
+                        to: separateThumbnailFolder,
+                        format: exportFormat
+                    )
+                }
+            } else {
+                fullResolutionFrameHandler = nil
+            }
+
             let thumbnailSize = configuration.resolvedThumbnailSize(for: resolution)
             let thumbnails = try await VideoProcessingService.generateThumbnails(
                 for: input.url,
+                duration: duration,
                 count: configuration.columns * configuration.rows,
-                maxSize: thumbnailSize
+                maxSize: thumbnailSize,
+                fullResolutionFrameHandler: fullResolutionFrameHandler
             )
 
             let image = ContactSheetRenderer.render(
@@ -905,63 +879,60 @@ final class AppViewModel: ObservableObject {
                 options: configuration.renderOptions(for: resolution)
             )
 
-            let targetURL = directory.appendingPathComponent(outputFileName(fileName: input.fileName, exportFormat: configuration.exportFormat))
-            try ensurePathDoesNotExist(targetURL)
             try writeImage(image, to: targetURL, format: configuration.exportFormat)
+            createdOutputURL = targetURL
 
-            if configuration.exportSeparateThumbnails {
-                let fullResolutionThumbnails = try await VideoProcessingService.generateThumbnails(
-                    for: input.url,
-                    count: configuration.columns * configuration.rows,
-                    maxSize: resolution
-                )
-                try exportSeparateThumbnails(
-                    fullResolutionThumbnails,
-                    for: input.fileName,
-                    in: directory,
-                    format: configuration.exportFormat
-                )
-            }
-
-            return RenderJobResult(
+            let result = RenderJobResult(
                 id: input.id,
                 outcome: .success(
                     image: image,
-                    duration: duration,
-                    resolution: resolution,
+                    metadata: VideoRenderMetadata(
+                        duration: duration,
+                        resolution: resolution,
+                        bitrateBitsPerSecond: bitrateBitsPerSecond,
+                        videoCodec: videoCodec,
+                        audioCodecs: audioCodecs
+                    ),
                     targetURL: targetURL
                 )
             )
+            createdSeparateThumbnailFolder = nil
+            createdOutputURL = nil
+            return result
         } catch {
+            if let createdOutputURL {
+                try? FileManager.default.removeItem(at: createdOutputURL)
+            }
+            if let createdSeparateThumbnailFolder {
+                try? FileManager.default.removeItem(at: createdSeparateThumbnailFolder)
+            }
             return RenderJobResult(id: input.id, outcome: .failure(error.localizedDescription))
         }
     }
 
-    private static func outputFileName(fileName: String, exportFormat: ExportFormat) -> String {
+    nonisolated private static func outputFileName(fileName: String, exportFormat: ExportFormat) -> String {
         let stem = URL(fileURLWithPath: fileName).deletingPathExtension().lastPathComponent
         return "\(stem).\(exportFormat.fileExtension)"
     }
 
-    private static func exportSeparateThumbnails(
-        _ thumbnails: [ThumbnailFrame],
-        for fileName: String,
-        in directory: URL,
-        format: ExportFormat
-    ) throws {
+    nonisolated private static func separateThumbnailFolderURL(for fileName: String, in directory: URL) -> URL {
         let stem = URL(fileURLWithPath: fileName).deletingPathExtension().lastPathComponent
-        let targetFolder = directory.appendingPathComponent(stem, isDirectory: true)
-        try ensurePathDoesNotExist(targetFolder)
-        try FileManager.default.createDirectory(at: targetFolder, withIntermediateDirectories: true)
-
-        for (index, thumbnail) in thumbnails.enumerated() {
-            let timePart = timestampForFileName(thumbnail.timestamp)
-            let itemName = String(format: "%03d_%@.%@", index + 1, timePart, format.fileExtension)
-            let targetURL = targetFolder.appendingPathComponent(itemName)
-            try writeImage(thumbnail.image, to: targetURL, format: format)
-        }
+        return directory.appendingPathComponent(stem, isDirectory: true)
     }
 
-    private static func timestampForFileName(_ seconds: TimeInterval) -> String {
+    nonisolated private static func writeSeparateThumbnail(
+        _ thumbnail: ThumbnailFrame,
+        index: Int,
+        to directory: URL,
+        format: ExportFormat
+    ) throws {
+        let timePart = timestampForFileName(thumbnail.timestamp)
+        let itemName = String(format: "%03d_%@.%@", index + 1, timePart, format.fileExtension)
+        let targetURL = directory.appendingPathComponent(itemName)
+        try writeImage(thumbnail.image, to: targetURL, format: format)
+    }
+
+    nonisolated private static func timestampForFileName(_ seconds: TimeInterval) -> String {
         let totalMilliseconds = max(Int((seconds * 1000).rounded()), 0)
         let hours = totalMilliseconds / 3_600_000
         let minutes = (totalMilliseconds % 3_600_000) / 60_000
@@ -970,7 +941,7 @@ final class AppViewModel: ObservableObject {
         return String(format: "%02d-%02d-%02d_%03d", hours, minutes, secs, millis)
     }
 
-    private static func writeImage(_ image: NSImage, to url: URL, format: ExportFormat) throws {
+    nonisolated private static func writeImage(_ image: NSImage, to url: URL, format: ExportFormat) throws {
         switch format {
         case .jpg:
             guard let data = image.jpegData(compressionFactor: 0.92) else {
@@ -985,7 +956,7 @@ final class AppViewModel: ObservableObject {
         }
     }
 
-    private static func ensurePathDoesNotExist(_ url: URL) throws {
+    nonisolated private static func ensurePathDoesNotExist(_ url: URL) throws {
         if FileManager.default.fileExists(atPath: url.path) {
             throw NSError(
                 domain: "ThumbnailGridStudio.Export",
@@ -995,7 +966,7 @@ final class AppViewModel: ObservableObject {
         }
     }
 
-    private static func formatDuration(_ duration: TimeInterval) -> String {
+    nonisolated private static func formatDuration(_ duration: TimeInterval) -> String {
         let totalSeconds = max(Int(duration.rounded()), 0)
         let hours = totalSeconds / 3600
         let minutes = (totalSeconds % 3600) / 60
@@ -1006,31 +977,31 @@ final class AppViewModel: ObservableObject {
         return String(format: "%02d:%02d", minutes, seconds)
     }
 
-    private static func formatFileSize(_ fileSize: Int64) -> String {
+    nonisolated private static func formatFileSize(_ fileSize: Int64) -> String {
         let formatter = ByteCountFormatter()
         formatter.countStyle = .file
         return formatter.string(fromByteCount: fileSize)
     }
 
-    private static func formatResolution(_ resolution: CGSize) -> String {
+    nonisolated private static func formatResolution(_ resolution: CGSize) -> String {
         let width = Int(resolution.width.rounded())
         let height = Int(resolution.height.rounded())
         guard width > 0, height > 0 else { return AppStrings.unknownResolution }
         return "\(width) × \(height)"
     }
 
-    private static func formatBitrate(_ bitrateBitsPerSecond: Int64) -> String {
+    nonisolated private static func formatBitrate(_ bitrateBitsPerSecond: Int64) -> String {
         guard bitrateBitsPerSecond > 0 else { return AppStrings.metadataUnknownValue }
         let kbps = Double(bitrateBitsPerSecond) / 1000
         return kbps >= 1000 ? String(format: "%.2f Mbps", kbps / 1000) : String(format: "%.0f kbps", kbps)
     }
 
-    private static func formatCodec(_ codec: String) -> String {
+    nonisolated private static func formatCodec(_ codec: String) -> String {
         let trimmed = codec.trimmingCharacters(in: .whitespacesAndNewlines)
         return trimmed.isEmpty ? AppStrings.metadataUnknownValue : trimmed
     }
 
-    private static func formatAudioCodecs(_ codecs: [String]) -> [String] {
+    nonisolated private static func formatAudioCodecs(_ codecs: [String]) -> [String] {
         let normalized = codecs
             .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
             .filter { !$0.isEmpty }
@@ -1083,9 +1054,24 @@ private struct RenderJobInput: Sendable {
     let audioCodecs: [String]
 }
 
-private struct RenderJobResult {
-    enum Outcome {
-        case success(image: NSImage, duration: TimeInterval, resolution: CGSize, targetURL: URL)
+private struct ImportJobInput: Sendable {
+    let index: Int
+    let url: URL
+}
+
+private struct ImportJobResult: Sendable {
+    enum Outcome: Sendable {
+        case success(VideoMetadata)
+        case failure(String)
+    }
+
+    let index: Int
+    let result: Outcome
+}
+
+private struct RenderJobResult: @unchecked Sendable {
+    enum Outcome: @unchecked Sendable {
+        case success(image: NSImage, metadata: VideoRenderMetadata, targetURL: URL)
         case failure(String)
     }
 

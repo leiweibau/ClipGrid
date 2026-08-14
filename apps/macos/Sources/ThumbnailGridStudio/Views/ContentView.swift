@@ -4,7 +4,6 @@ struct ContentView: View {
     @ObservedObject var viewModel: AppViewModel
     @ObservedObject private var settings: AppSettings
     @State private var isDropTargeted = false
-    @StateObject private var toolbarObserver = ToolbarDisplayModeObserver()
 
     init(viewModel: AppViewModel) {
         self.viewModel = viewModel
@@ -104,29 +103,21 @@ struct ContentView: View {
             )
         }
         .toolbar {
-            ToolbarItem(placement: .principal) {
-                HStack(spacing: 30) {
-                    toolbarButton(
-                        title: AppStrings.clearAllLabel,
-                        systemImage: "trash",
-                        tint: .red,
-                        helpText: AppStrings.clearAllHelp
-                    ) {
-                        viewModel.clearAll()
-                    }
-
-                    toolbarButton(
-                        title: AppStrings.renderLabel,
-                        systemImage: "play.fill",
-                        tint: .green,
-                        helpText: AppStrings.startHelp
-                    ) {
-                        Task {
-                            await viewModel.startRendering()
-                        }
-                    }
+            if #available(macOS 26.0, *) {
+                ToolbarItem(placement: .principal) {
+                    clearToolbarButton
                 }
-                .fixedSize()
+                ToolbarSpacer(.fixed, placement: .principal)
+                ToolbarItem(placement: .principal) {
+                    renderToolbarButton
+                }
+            } else {
+                ToolbarItemGroup(placement: .principal) {
+                    clearToolbarButton
+                    Spacer()
+                        .frame(width: 22)
+                    renderToolbarButton
+                }
             }
         }
         .alert(AppStrings.errorTitle, isPresented: Binding(
@@ -150,20 +141,29 @@ struct ContentView: View {
         ) { providers in
             viewModel.handleDrop(providers: providers)
         }
-        .background(
-            ToolbarDisplayModeReader(observer: toolbarObserver)
-                .frame(width: 0, height: 0)
-        )
     }
 
-    private var showsToolbarText: Bool {
-        switch toolbarObserver.displayMode {
-        case .iconOnly:
-            return false
-        case .labelOnly, .iconAndLabel, .default:
-            return true
-        @unknown default:
-            return true
+    private var clearToolbarButton: some View {
+        toolbarButton(
+            title: AppStrings.clearAllLabel,
+            systemImage: "trash",
+            tint: .red,
+            helpText: AppStrings.clearAllHelp
+        ) {
+            viewModel.clearAll()
+        }
+    }
+
+    private var renderToolbarButton: some View {
+        toolbarButton(
+            title: AppStrings.renderLabel,
+            systemImage: "play.fill",
+            tint: .green,
+            helpText: AppStrings.startHelp
+        ) {
+            Task {
+                await viewModel.startRendering()
+            }
         }
     }
 
@@ -175,12 +175,11 @@ struct ContentView: View {
         action: @escaping () -> Void
     ) -> some View {
         Button(action: action) {
-            HStack(spacing: 8) {
+            Label {
+                Text(title)
+            } icon: {
                 Image(systemName: systemImage)
                     .foregroundStyle(tint)
-                if showsToolbarText {
-                    Text(title)
-                }
             }
         }
         .help(helpText)

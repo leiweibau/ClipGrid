@@ -163,7 +163,6 @@ final class AppSettings: ObservableObject {
         [
             "\(columns)",
             "\(rows)",
-            "\(renderConcurrency)",
             thumbnailSpacingText,
             thumbnailWidthText,
             thumbnailHeightText,
@@ -173,7 +172,6 @@ final class AppSettings: ObservableObject {
             "\(Int(metadataTextRed * 1000))",
             "\(Int(metadataTextGreen * 1000))",
             "\(Int(metadataTextBlue * 1000))",
-            "\(exportFormat.rawValue.hashValue)",
             showFileName ? "1" : "0",
             showDuration ? "1" : "0",
             showFileSize ? "1" : "0",
@@ -182,7 +180,6 @@ final class AppSettings: ObservableObject {
             showBitrate ? "1" : "0",
             showVideoCodec ? "1" : "0",
             showAudioCodec ? "1" : "0",
-            exportSeparateThumbnails ? "1" : "0",
             fileNameFontSizeText,
             durationFontSizeText,
             fileSizeFontSizeText,

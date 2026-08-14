@@ -124,6 +124,7 @@ private struct ThumbnailFrame {
 private enum CLIRunner {
     private static let cliVersion = "1.3.4"
 
+    @MainActor
     static func run() throws {
         configureHeadlessAppKit()
 
@@ -153,6 +154,7 @@ private enum CLIRunner {
         }
     }
 
+    @MainActor
     private static func configureHeadlessAppKit() {
         setenv("LSUIElement", "1", 1)
         setenv("LSBackgroundOnly", "1", 1)
@@ -1208,7 +1210,9 @@ private struct FFprobeResponse: Decodable {
 }
 
 do {
-    try CLIRunner.run()
+    try MainActor.assumeIsolated {
+        try CLIRunner.run()
+    }
 } catch {
     fputs("Error: \(error.localizedDescription)\n", stderr)
     fputs("Use --h for help.\n", stderr)
