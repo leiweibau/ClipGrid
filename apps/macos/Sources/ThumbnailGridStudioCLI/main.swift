@@ -122,7 +122,7 @@ private struct ThumbnailFrame {
 }
 
 private enum CLIRunner {
-    private static let cliVersion = "1.3.4"
+    private static let cliVersion = "1.4.0"
 
     @MainActor
     static func run() throws {
