@@ -352,6 +352,39 @@ public sealed class AppSettings : ObservableObject
         };
     }
 
+    public AppSettings CreateRenderSnapshot()
+    {
+        return new AppSettings
+        {
+            ColumnsText = ColumnsText,
+            RowsText = RowsText,
+            ThumbnailWidthText = ThumbnailWidthText,
+            ThumbnailHeightText = ThumbnailHeightText,
+            SpacingText = SpacingText,
+            ExportFormatIndex = ExportFormatIndex,
+            BackgroundHex = BackgroundHex,
+            MetadataHex = MetadataHex,
+            FileNameFontSize = FileNameFontSize,
+            DurationFontSize = DurationFontSize,
+            FileSizeFontSize = FileSizeFontSize,
+            ResolutionFontSize = ResolutionFontSize,
+            TimestampFontSize = TimestampFontSize,
+            BitrateFontSize = BitrateFontSize,
+            VideoCodecFontSize = VideoCodecFontSize,
+            AudioCodecFontSize = AudioCodecFontSize,
+            ShowFileName = ShowFileName,
+            ShowDuration = ShowDuration,
+            ShowFileSize = ShowFileSize,
+            ShowResolution = ShowResolution,
+            ShowTimestamp = ShowTimestamp,
+            ShowBitrate = ShowBitrate,
+            ShowVideoCodec = ShowVideoCodec,
+            ShowAudioCodec = ShowAudioCodec,
+            ExportSeparateThumbnails = ExportSeparateThumbnails,
+            RenderConcurrency = RenderConcurrency
+        };
+    }
+
     private AppSettingsSnapshot CreateSnapshot()
     {
         return new AppSettingsSnapshot

@@ -58,14 +58,17 @@ internal static class Program
         var completedCount = 0;
         var totalCount = inputs.Count;
         var sync = new object();
-        using var gate = new SemaphoreSlim(Math.Max(1, settings.RenderConcurrency), Math.Max(1, settings.RenderConcurrency));
-
-        var tasks = inputs.Select(async inputPath =>
-        {
-            await gate.WaitAsync();
-            try
+        await RollingTaskPool.MapAsync(
+            inputs,
+            settings.RenderConcurrency,
+            async (inputPath, cancellationToken) =>
             {
-                var result = await RenderSingleAsync(inputPath, outputDirectory, settings, processor);
+                var result = await RenderSingleAsync(
+                    inputPath,
+                    outputDirectory,
+                    settings,
+                    processor,
+                    cancellationToken).ConfigureAwait(false);
                 lock (sync)
                 {
                     if (result.Succeeded)
@@ -79,16 +82,11 @@ internal static class Program
                         Console.Error.WriteLine($"[ERR] {Path.GetFileName(inputPath)} -> {result.Error}");
                     }
                 }
-            }
-            finally
-            {
+
                 var done = Interlocked.Increment(ref completedCount);
                 Console.WriteLine($"Progress: {done}/{totalCount}");
-                gate.Release();
-            }
-        }).ToList();
-
-        await Task.WhenAll(tasks);
+                return result;
+            });
 
         Console.WriteLine();
         Console.WriteLine($"Done. Success: {successCount}, Failed: {failureCount}");
@@ -100,20 +98,40 @@ internal static class Program
         string inputPath,
         string outputDirectory,
         AppSettings settings,
-        VideoProcessingService processor)
+        VideoProcessingService processor,
+        CancellationToken cancellationToken)
     {
+        string? separateThumbnailDirectory = null;
         try
         {
-            var metadata = await processor.LoadMetadataAsync(inputPath);
+            var metadata = await processor.LoadMetadataAsync(inputPath, cancellationToken).ConfigureAwait(false);
             var thumbSize = settings.ResolveThumbnailSize(metadata.Width, metadata.Height);
             var count = settings.Columns * settings.Rows;
+            Func<int, ThumbnailFrame, CancellationToken, Task>? fullResolutionFrameHandler = null;
+
+            if (settings.ExportSeparateThumbnails)
+            {
+                var folder = OutputPathResolver.GetUniqueDirectoryPath(Path.Combine(
+                    outputDirectory,
+                    Path.GetFileNameWithoutExtension(inputPath)));
+                Directory.CreateDirectory(folder);
+                separateThumbnailDirectory = folder;
+                fullResolutionFrameHandler = (index, frame, token) =>
+                {
+                    token.ThrowIfCancellationRequested();
+                    ExportSeparateThumbnail(index, frame, folder, settings.ExportFormatIndex);
+                    return Task.CompletedTask;
+                };
+            }
 
             var thumbnails = (await processor.GenerateThumbnailsAsync(
                 inputPath,
                 count,
                 thumbSize.Width,
                 thumbSize.Height,
-                metadata.Duration)).ToList();
+                metadata.Duration,
+                fullResolutionFrameHandler,
+                cancellationToken).ConfigureAwait(false)).ToList();
 
             try
             {
@@ -122,29 +140,6 @@ internal static class Program
                     $"{Path.GetFileNameWithoutExtension(inputPath)}.{settings.ExportFileExtension}"));
 
                 ContactSheetRenderer.RenderAndSave(metadata, Path.GetFileName(inputPath), thumbnails, settings, outputPath);
-
-                if (settings.ExportSeparateThumbnails)
-                {
-                    var fullResolutionWidth = metadata.Width > 0 ? metadata.Width : settings.ThumbnailWidth;
-                    var fullResolutionHeight = metadata.Height > 0 ? metadata.Height : settings.ThumbnailHeight;
-                    var fullResolution = (await processor.GenerateThumbnailsAsync(
-                        inputPath,
-                        count,
-                        fullResolutionWidth,
-                        fullResolutionHeight,
-                        metadata.Duration)).ToList();
-                    try
-                    {
-                        ExportSeparateThumbnails(inputPath, fullResolution, outputDirectory, settings.ExportFormatIndex);
-                    }
-                    finally
-                    {
-                        foreach (var frame in fullResolution)
-                        {
-                            frame.Dispose();
-                        }
-                    }
-                }
 
                 return RenderResult.Success(outputPath);
             }
@@ -158,37 +153,35 @@ internal static class Program
         }
         catch (Exception ex)
         {
+            if (!string.IsNullOrWhiteSpace(separateThumbnailDirectory))
+            {
+                try
+                {
+                    Directory.Delete(separateThumbnailDirectory, recursive: true);
+                }
+                catch
+                {
+                    // Keep the original rendering error.
+                }
+            }
+
             return RenderResult.Fail(ex.Message);
         }
     }
 
-    private static void ExportSeparateThumbnails(
-        string inputPath,
-        IReadOnlyList<ThumbnailFrame> thumbnails,
+    private static void ExportSeparateThumbnail(
+        int index,
+        ThumbnailFrame thumbnail,
         string outputDirectory,
         int exportFormatIndex)
     {
-        if (thumbnails.Count == 0)
-        {
-            return;
-        }
-
-        var stem = Path.GetFileNameWithoutExtension(inputPath);
-        var folder = OutputPathResolver.GetUniqueDirectoryPath(Path.Combine(outputDirectory, stem));
-        Directory.CreateDirectory(folder);
-
         var format = exportFormatIndex == 1
             ? ImageFormat.Png
             : ImageFormat.Jpeg;
         var extension = exportFormatIndex == 1 ? "png" : "jpg";
-
-        for (var i = 0; i < thumbnails.Count; i++)
-        {
-            var frame = thumbnails[i];
-            var timestamp = FormatTimestampForFileName(frame.Timestamp);
-            var path = Path.Combine(folder, $"{i + 1:000}_{timestamp}.{extension}");
-            frame.Image.Save(path, format);
-        }
+        var timestamp = FormatTimestampForFileName(thumbnail.Timestamp);
+        var path = Path.Combine(outputDirectory, $"{index + 1:000}_{timestamp}.{extension}");
+        thumbnail.Image.Save(path, format);
     }
 
     private static string FormatTimestampForFileName(TimeSpan timestamp)

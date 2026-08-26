@@ -28,6 +28,7 @@ public sealed class MainViewModel : ObservableObject
     private CancellationTokenSource? _settingsSaveCts;
     private readonly string _previewDirectory;
     private bool _isLoadingSettings;
+    private string? _placeholderPreviewKey;
 
     public MainViewModel()
     {
@@ -36,14 +37,23 @@ public sealed class MainViewModel : ObservableObject
         Directory.CreateDirectory(_previewDirectory);
 
         Videos.CollectionChanged += (_, _) => NotifyUiStateChanged();
-        Settings.PropertyChanged += (_, _) =>
+        Settings.PropertyChanged += (_, e) =>
         {
             if (_isLoadingSettings)
             {
                 return;
             }
 
-            TriggerPreviewRefresh();
+            if (IsDerivedSettingProperty(e.PropertyName))
+            {
+                return;
+            }
+
+            if (IsPreviewSettingProperty(e.PropertyName))
+            {
+                TriggerPreviewRefresh();
+            }
+
             QueueSettingsSave();
         };
         _ = LoadSettingsAsync();
@@ -94,6 +104,11 @@ public sealed class MainViewModel : ObservableObject
         {
             if (SetProperty(ref _previewImage, value))
             {
+                if (value is null)
+                {
+                    _placeholderPreviewKey = null;
+                }
+
                 OnPropertyChanged(nameof(HasPreview));
             }
         }
@@ -149,34 +164,31 @@ public sealed class MainViewModel : ObservableObject
             NotifyProgress();
 
             var indexedInputs = inputs.Select((path, index) => (path, index)).ToList();
-            var importResults = new ImportResult[indexedInputs.Count];
-            using var gate = new SemaphoreSlim(MaxConcurrentImports, MaxConcurrentImports);
-            var tasks = indexedInputs.Select(async entry =>
-            {
-                await gate.WaitAsync();
-                try
+            var importResults = await RollingTaskPool.MapAsync(
+                indexedInputs,
+                MaxConcurrentImports,
+                async (entry, cancellationToken) =>
                 {
-                    var metadata = await processor.LoadMetadataAsync(entry.path);
-                    importResults[entry.index] = new ImportResult(entry.path, metadata, null, false);
-                }
-                catch (Exception ex)
+                    try
+                    {
+                        var metadata = await processor.LoadMetadataAsync(entry.path, cancellationToken).ConfigureAwait(false);
+                        return new ImportResult(entry.path, metadata, null, false);
+                    }
+                    catch (Exception ex)
+                    {
+                        var unsupported = IsUnsupportedImportError(ex.Message);
+                        return new ImportResult(entry.path, null, ex.Message, unsupported);
+                    }
+                },
+                _ =>
                 {
-                    var unsupported = IsUnsupportedImportError(ex.Message);
-                    importResults[entry.index] = new ImportResult(entry.path, null, ex.Message, unsupported);
-                }
-                finally
-                {
-                    gate.Release();
                     Interlocked.Increment(ref _completed);
                     RunOnUi(NotifyProgress);
-                }
-            }).ToList();
+                });
 
-            await Task.WhenAll(tasks);
-
-            foreach (var result in importResults.Where(r => r is not null))
+            foreach (var result in importResults)
             {
-                if (result?.Metadata is not null)
+                if (result.Metadata is not null)
                 {
                     var item = new VideoItem
                     {
@@ -196,7 +208,7 @@ public sealed class MainViewModel : ObservableObject
                     continue;
                 }
 
-                if (!string.IsNullOrWhiteSpace(result?.Error))
+                if (!string.IsNullOrWhiteSpace(result.Error))
                 {
                     if (result.IsUnsupported)
                     {
@@ -250,6 +262,7 @@ public sealed class MainViewModel : ObservableObject
             var tools = FfmpegService.ResolveTools();
             var processor = new VideoProcessingService(tools);
             var snapshot = Videos.ToList();
+            var renderSettings = Settings.CreateRenderSnapshot();
 
             _completed = 0;
             _total = snapshot.Count;
@@ -260,10 +273,19 @@ public sealed class MainViewModel : ObservableObject
                 item.StatusText = Localizer.Get("View.Status.Waiting", "Wartet...");
             }
 
-            var maxConcurrency = Math.Max(Settings.RenderConcurrency, 1);
-            using var gate = new SemaphoreSlim(maxConcurrency, maxConcurrency);
-            var tasks = snapshot.Select(item => RenderSingleAsync(item, outputDirectory, processor, gate)).ToList();
-            await Task.WhenAll(tasks);
+            await RollingTaskPool.MapAsync(
+                snapshot,
+                renderSettings.RenderConcurrency,
+                async (item, cancellationToken) =>
+                {
+                    await RenderSingleAsync(
+                        item,
+                        outputDirectory,
+                        processor,
+                        renderSettings,
+                        cancellationToken).ConfigureAwait(false);
+                    return true;
+                });
         }
         catch (Exception ex)
         {
@@ -331,100 +353,123 @@ public sealed class MainViewModel : ObservableObject
         VideoItem item,
         string outputDirectory,
         VideoProcessingService processor,
-        SemaphoreSlim gate)
+        AppSettings renderSettings,
+        CancellationToken cancellationToken)
     {
-        await gate.WaitAsync();
+        RunOnUi(() => item.StatusText = Localizer.Get("View.Status.Rendering", "Render läuft..."));
+
+        List<ThumbnailFrame>? thumbnails = null;
+        string? separateThumbnailDirectory = null;
+        string? output = null;
+        var outputWasCreated = false;
         try
         {
-            RunOnUi(() => item.StatusText = Localizer.Get("View.Status.Rendering", "Render läuft..."));
+            var thumbSize = renderSettings.ResolveThumbnailSize(item.Width, item.Height);
+            Func<int, ThumbnailFrame, CancellationToken, Task>? fullResolutionFrameHandler = null;
 
-            List<ThumbnailFrame>? thumbnails = null;
-            try
+            if (renderSettings.ExportSeparateThumbnails)
             {
-                var thumbSize = Settings.ResolveThumbnailSize(item.Width, item.Height);
-                thumbnails = (await processor.GenerateThumbnailsAsync(
-                    item.FilePath,
-                    Settings.Columns * Settings.Rows,
-                    thumbSize.Width,
-                    thumbSize.Height,
-                    item.Duration)).ToList();
-
-                var metadata = new VideoMetadata(
-                    item.Duration,
-                    item.Width,
-                    item.Height,
-                    item.FileSizeBytes,
-                    item.BitrateBitsPerSecond,
-                    item.VideoCodec,
-                    item.AudioCodecs);
-                var output = OutputPathResolver.GetUniqueFilePath(Path.Combine(
+                var folder = OutputPathResolver.GetUniqueDirectoryPath(Path.Combine(
                     outputDirectory,
-                    $"{Path.GetFileNameWithoutExtension(item.FileName)}.{Settings.ExportFileExtension}"));
-
-                ContactSheetRenderer.RenderAndSave(metadata, item.FileName, thumbnails, Settings, output);
-                item.OutputPath = output;
-
-                if (Settings.ExportSeparateThumbnails)
+                    Path.GetFileNameWithoutExtension(item.FileName)));
+                Directory.CreateDirectory(folder);
+                separateThumbnailDirectory = folder;
+                fullResolutionFrameHandler = (index, frame, token) =>
                 {
-                    var fullResolutionWidth = item.Width > 0 ? item.Width : Settings.ThumbnailWidth;
-                    var fullResolutionHeight = item.Height > 0 ? item.Height : Settings.ThumbnailHeight;
-                    var fullResolution = (await processor.GenerateThumbnailsAsync(
-                        item.FilePath,
-                        Settings.Columns * Settings.Rows,
-                        fullResolutionWidth,
-                        fullResolutionHeight,
-                        item.Duration)).ToList();
-                    try
-                    {
-                        ExportSeparateThumbnails(item, fullResolution, outputDirectory);
-                    }
-                    finally
-                    {
-                        foreach (var thumb in fullResolution)
-                        {
-                            thumb.Dispose();
-                        }
-                    }
-                }
+                    token.ThrowIfCancellationRequested();
+                    ExportSeparateThumbnail(index, frame, folder, renderSettings);
+                    return Task.CompletedTask;
+                };
+            }
 
-                RunOnUi(() => item.StatusText = string.Format(
+            thumbnails = (await processor.GenerateThumbnailsAsync(
+                item.FilePath,
+                renderSettings.Columns * renderSettings.Rows,
+                thumbSize.Width,
+                thumbSize.Height,
+                item.Duration,
+                fullResolutionFrameHandler,
+                cancellationToken).ConfigureAwait(false)).ToList();
+
+            cancellationToken.ThrowIfCancellationRequested();
+            var metadata = new VideoMetadata(
+                item.Duration,
+                item.Width,
+                item.Height,
+                item.FileSizeBytes,
+                item.BitrateBitsPerSecond,
+                item.VideoCodec,
+                item.AudioCodecs);
+            output = OutputPathResolver.GetUniqueFilePath(Path.Combine(
+                outputDirectory,
+                $"{Path.GetFileNameWithoutExtension(item.FileName)}.{renderSettings.ExportFileExtension}"));
+
+            ContactSheetRenderer.RenderAndSave(metadata, item.FileName, thumbnails, renderSettings, output);
+            outputWasCreated = true;
+
+            RunOnUi(() =>
+            {
+                item.OutputPath = output;
+                item.StatusText = string.Format(
                     CultureInfo.CurrentCulture,
                     Localizer.Get("View.Status.Exported", "Exportiert: {0}"),
-                    Path.GetFileName(output)));
+                    Path.GetFileName(output));
                 if (SelectedVideo?.FilePath.Equals(item.FilePath, StringComparison.OrdinalIgnoreCase) == true)
                 {
-                    RunOnUi(() => PreviewImage = new BitmapImage(new Uri(output)));
+                    _placeholderPreviewKey = null;
+                    PreviewImage = new BitmapImage(new Uri(output));
+                }
+            });
+        }
+        catch (Exception ex)
+        {
+            if (outputWasCreated && !string.IsNullOrWhiteSpace(output))
+            {
+                try
+                {
+                    File.Delete(output);
+                }
+                catch
+                {
+                    // Keep the original rendering error.
                 }
             }
-            catch (Exception ex)
+
+            if (!string.IsNullOrWhiteSpace(separateThumbnailDirectory))
             {
-                RunOnUi(() =>
+                try
                 {
-                    item.StatusText = string.Format(
-                        CultureInfo.CurrentCulture,
-                        Localizer.Get("View.Status.Error", "Fehler: {0}"),
-                        ex.Message);
-                    LastError = string.Format(
-                        CultureInfo.CurrentCulture,
-                        Localizer.Get("View.Error.ExportFailed", "Export fehlgeschlagen ({0}): {1}"),
-                        item.FileName,
-                        ex.Message);
-                });
-            }
-            finally
-            {
-                if (thumbnails is not null)
+                    Directory.Delete(separateThumbnailDirectory, recursive: true);
+                }
+                catch
                 {
-                    foreach (var thumb in thumbnails)
-                    {
-                        thumb.Dispose();
-                    }
+                    // Keep the original rendering error.
                 }
             }
+
+            RunOnUi(() =>
+            {
+                item.StatusText = string.Format(
+                    CultureInfo.CurrentCulture,
+                    Localizer.Get("View.Status.Error", "Fehler: {0}"),
+                    ex.Message);
+                LastError = string.Format(
+                    CultureInfo.CurrentCulture,
+                    Localizer.Get("View.Error.ExportFailed", "Export fehlgeschlagen ({0}): {1}"),
+                    item.FileName,
+                    ex.Message);
+            });
         }
         finally
         {
-            gate.Release();
+            if (thumbnails is not null)
+            {
+                foreach (var thumb in thumbnails)
+                {
+                    thumb.Dispose();
+                }
+            }
+
             Interlocked.Increment(ref _completed);
             RunOnUi(NotifyProgress);
         }
@@ -499,33 +544,13 @@ public sealed class MainViewModel : ObservableObject
             return;
         }
 
-        if (SelectedVideo is null)
-        {
-            await RenderPlaceholderPreviewAsync(
-                Localizer.Get("View.PreviewFallbackTitle", "Vorschau"),
-                TimeSpan.Zero,
-                0,
-                0,
-                0,
-                0,
-                string.Empty,
-                Array.Empty<string>(),
-                cancellationToken);
-            return;
-        }
-
         try
         {
             await Task.Delay(220, cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();
 
             var item = SelectedVideo;
-            if (item is null)
-            {
-                return;
-            }
-
-            if (!string.IsNullOrWhiteSpace(item.OutputPath) && File.Exists(item.OutputPath))
+            if (item is not null && !string.IsNullOrWhiteSpace(item.OutputPath) && File.Exists(item.OutputPath))
             {
                 RunOnUi(() =>
                 {
@@ -535,20 +560,48 @@ public sealed class MainViewModel : ObservableObject
                     }
 
                     var image = new BitmapImage(new Uri(item.OutputPath));
+                    _placeholderPreviewKey = null;
                     PreviewImage = image;
                 });
                 return;
             }
 
+            var renderSettings = Settings.CreateRenderSnapshot();
+            var title = item?.FileName ?? Localizer.Get("View.PreviewFallbackTitle", "Vorschau");
+            var duration = item?.Duration ?? TimeSpan.Zero;
+            var fileSizeBytes = item?.FileSizeBytes ?? 0;
+            var width = item?.Width ?? 0;
+            var height = item?.Height ?? 0;
+            var bitrateBitsPerSecond = item?.BitrateBitsPerSecond ?? 0;
+            var videoCodec = item?.VideoCodec ?? string.Empty;
+            var audioCodecs = item?.AudioCodecs ?? Array.Empty<string>();
+            var previewKey = BuildPlaceholderPreviewKey(
+                title,
+                duration,
+                fileSizeBytes,
+                width,
+                height,
+                bitrateBitsPerSecond,
+                videoCodec,
+                audioCodecs,
+                renderSettings);
+
+            if (string.Equals(previewKey, _placeholderPreviewKey, StringComparison.Ordinal) && PreviewImage is not null)
+            {
+                return;
+            }
+
             await RenderPlaceholderPreviewAsync(
-                item.FileName,
-                item.Duration,
-                item.FileSizeBytes,
-                item.Width,
-                item.Height,
-                item.BitrateBitsPerSecond,
-                item.VideoCodec,
-                item.AudioCodecs,
+                title,
+                duration,
+                fileSizeBytes,
+                width,
+                height,
+                bitrateBitsPerSecond,
+                videoCodec,
+                audioCodecs,
+                renderSettings,
+                previewKey,
                 cancellationToken);
         }
         catch (OperationCanceledException)
@@ -570,6 +623,8 @@ public sealed class MainViewModel : ObservableObject
         long bitrateBitsPerSecond,
         string videoCodec,
         IReadOnlyList<string> audioCodecs,
+        AppSettings renderSettings,
+        string previewKey,
         CancellationToken cancellationToken)
     {
         var previewPath = Path.Combine(_previewDirectory, $"placeholder-{Guid.NewGuid():N}.preview.jpg");
@@ -585,7 +640,7 @@ public sealed class MainViewModel : ObservableObject
                 bitrateBitsPerSecond,
                 videoCodec,
                 audioCodecs,
-                Settings,
+                renderSettings,
                 previewPath);
         }, cancellationToken);
 
@@ -596,13 +651,74 @@ public sealed class MainViewModel : ObservableObject
                 return;
             }
 
+            _placeholderPreviewKey = previewKey;
             PreviewImage = new BitmapImage(new Uri(previewPath));
         });
+    }
+
+    private static string BuildPlaceholderPreviewKey(
+        string title,
+        TimeSpan duration,
+        long fileSizeBytes,
+        int width,
+        int height,
+        long bitrateBitsPerSecond,
+        string videoCodec,
+        IReadOnlyList<string> audioCodecs,
+        AppSettings settings)
+    {
+        return string.Join('|',
+            title,
+            duration.Ticks.ToString(CultureInfo.InvariantCulture),
+            fileSizeBytes.ToString(CultureInfo.InvariantCulture),
+            width.ToString(CultureInfo.InvariantCulture),
+            height.ToString(CultureInfo.InvariantCulture),
+            bitrateBitsPerSecond.ToString(CultureInfo.InvariantCulture),
+            videoCodec,
+            string.Join(';', audioCodecs),
+            settings.ColumnsText,
+            settings.RowsText,
+            settings.ThumbnailWidthText,
+            settings.ThumbnailHeightText,
+            settings.SpacingText,
+            settings.BackgroundHex,
+            settings.MetadataHex,
+            settings.FileNameFontSize.ToString("R", CultureInfo.InvariantCulture),
+            settings.DurationFontSize.ToString("R", CultureInfo.InvariantCulture),
+            settings.FileSizeFontSize.ToString("R", CultureInfo.InvariantCulture),
+            settings.ResolutionFontSize.ToString("R", CultureInfo.InvariantCulture),
+            settings.TimestampFontSize.ToString("R", CultureInfo.InvariantCulture),
+            settings.BitrateFontSize.ToString("R", CultureInfo.InvariantCulture),
+            settings.VideoCodecFontSize.ToString("R", CultureInfo.InvariantCulture),
+            settings.AudioCodecFontSize.ToString("R", CultureInfo.InvariantCulture),
+            settings.ShowFileName,
+            settings.ShowDuration,
+            settings.ShowFileSize,
+            settings.ShowResolution,
+            settings.ShowTimestamp,
+            settings.ShowBitrate,
+            settings.ShowVideoCodec,
+            settings.ShowAudioCodec);
     }
 
     private static bool IsSupportedVideo(string path)
     {
         return SupportedExtensions.Contains(Path.GetExtension(path));
+    }
+
+    private static bool IsDerivedSettingProperty(string? propertyName)
+    {
+        return propertyName is nameof(AppSettings.Columns)
+            or nameof(AppSettings.Rows)
+            or nameof(AppSettings.ThumbnailWidth)
+            or nameof(AppSettings.ThumbnailHeight);
+    }
+
+    private static bool IsPreviewSettingProperty(string? propertyName)
+    {
+        return propertyName is not nameof(AppSettings.ExportFormatIndex)
+            and not nameof(AppSettings.ExportSeparateThumbnails)
+            and not nameof(AppSettings.RenderConcurrency);
     }
 
     private static bool IsUnsupportedImportError(string? error)
@@ -683,28 +799,19 @@ public sealed class MainViewModel : ObservableObject
         _dispatcherQueue.TryEnqueue(() => action());
     }
 
-    private void ExportSeparateThumbnails(VideoItem item, IReadOnlyList<ThumbnailFrame> thumbnails, string outputDirectory)
+    private static void ExportSeparateThumbnail(
+        int index,
+        ThumbnailFrame thumbnail,
+        string outputDirectory,
+        AppSettings renderSettings)
     {
-        if (thumbnails.Count == 0)
-        {
-            return;
-        }
-
-        var stem = Path.GetFileNameWithoutExtension(item.FileName);
-        var folder = OutputPathResolver.GetUniqueDirectoryPath(Path.Combine(outputDirectory, stem));
-        Directory.CreateDirectory(folder);
-
-        for (var i = 0; i < thumbnails.Count; i++)
-        {
-            var thumb = thumbnails[i];
-            var timestamp = FormatTimestampForFileName(thumb.Timestamp);
-            var name = $"{i + 1:000}_{timestamp}.{Settings.ExportFileExtension}";
-            var path = Path.Combine(folder, name);
-            var format = Settings.ExportFormatIndex == 1
-                ? System.Drawing.Imaging.ImageFormat.Png
-                : System.Drawing.Imaging.ImageFormat.Jpeg;
-            thumb.Image.Save(path, format);
-        }
+        var timestamp = FormatTimestampForFileName(thumbnail.Timestamp);
+        var name = $"{index + 1:000}_{timestamp}.{renderSettings.ExportFileExtension}";
+        var path = Path.Combine(outputDirectory, name);
+        var format = renderSettings.ExportFormatIndex == 1
+            ? System.Drawing.Imaging.ImageFormat.Png
+            : System.Drawing.Imaging.ImageFormat.Jpeg;
+        thumbnail.Image.Save(path, format);
     }
 
     private static string FormatTimestampForFileName(TimeSpan timestamp)

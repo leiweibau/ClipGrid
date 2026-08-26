@@ -2,6 +2,7 @@
 using Microsoft.UI.Input;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
 using System.Globalization;
 using System.Runtime.InteropServices;
@@ -47,6 +48,17 @@ public sealed partial class MainWindow : Window
     private void ApplyLocalizedUiText()
     {
         NoPreviewText.Text = L("Main.NoPreview", "Keine Vorschau");
+        SetAccessibleButtonText(ClearAllButton, L("Main.ClearAll", "Liste leeren"));
+        SetAccessibleButtonText(ExportAllButton, L("Main.ExportAll", "Alle Kontaktbögen exportieren"));
+        SetAccessibleButtonText(AddVideosButton, L("Main.AddVideos", "Videos hinzufügen"));
+        SetAccessibleButtonText(RemoveVideoButton, L("Main.RemoveVideo", "Ausgewähltes Video entfernen"));
+        SetAccessibleButtonText(SettingsButton, L("Main.OpenSettings", "Einstellungen öffnen"));
+    }
+
+    private static void SetAccessibleButtonText(Button button, string text)
+    {
+        AutomationProperties.SetName(button, text);
+        ToolTipService.SetToolTip(button, text);
     }
 
     private void ConfigureCustomTitleBar()

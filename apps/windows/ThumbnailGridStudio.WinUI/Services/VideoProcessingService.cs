@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Drawing;
+using System.Drawing.Drawing2D;
 using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -41,6 +42,10 @@ public sealed class ThumbnailFrame : IDisposable
 
 public sealed class VideoProcessingService
 {
+    private static readonly int MaxConcurrentFrameExtractions = Math.Clamp(Environment.ProcessorCount / 2, 1, 4);
+    private static readonly SemaphoreSlim FrameExtractionGate = new(
+        MaxConcurrentFrameExtractions,
+        MaxConcurrentFrameExtractions);
     private readonly FfmpegTools _tools;
 
     public VideoProcessingService(FfmpegTools tools)
@@ -120,6 +125,7 @@ public sealed class VideoProcessingService
         int width,
         int height,
         TimeSpan duration,
+        Func<int, ThumbnailFrame, CancellationToken, Task>? fullResolutionFrameHandler = null,
         CancellationToken cancellationToken = default)
     {
         var frameCount = Math.Max(1, count);
@@ -133,12 +139,11 @@ public sealed class VideoProcessingService
         {
             var maxWidth = Math.Max(width, 1);
             var maxHeight = Math.Max(height, 1);
-            var filter = string.Create(
-                CultureInfo.InvariantCulture,
-                $"scale=w={maxWidth}:h={maxHeight}:force_original_aspect_ratio=decrease,pad={maxWidth}:{maxHeight}:(ow-iw)/2:(oh-ih)/2:color=black");
-
-            var maxParallel = Math.Clamp(Environment.ProcessorCount / 3, 1, 3);
-            using var gate = new SemaphoreSlim(maxParallel, maxParallel);
+            var filter = fullResolutionFrameHandler is null
+                ? string.Create(
+                    CultureInfo.InvariantCulture,
+                    $"scale=w={maxWidth}:h={maxHeight}:force_original_aspect_ratio=decrease,pad={maxWidth}:{maxHeight}:(ow-iw)/2:(oh-ih)/2:color=black")
+                : null;
             var outputs = new string?[times.Count];
 
             var extractionTasks = times.Select((timestamp, index) => ExtractSingleFrameAsync(
@@ -147,11 +152,10 @@ public sealed class VideoProcessingService
                 index,
                 timestamp,
                 filter,
-                gate,
                 outputs,
                 cancellationToken)).ToList();
 
-            await Task.WhenAll(extractionTasks);
+            await Task.WhenAll(extractionTasks).ConfigureAwait(false);
 
             for (var i = 0; i < outputs.Length && i < times.Count; i++)
             {
@@ -161,7 +165,16 @@ public sealed class VideoProcessingService
                     continue;
                 }
 
-                frames.Add(new ThumbnailFrame(outputs[i]!, times[i]));
+                if (fullResolutionFrameHandler is null)
+                {
+                    frames.Add(new ThumbnailFrame(outputs[i]!, times[i]));
+                    continue;
+                }
+
+                using var fullResolutionFrame = new ThumbnailFrame(outputs[i]!, times[i]);
+                await fullResolutionFrameHandler(i, fullResolutionFrame, cancellationToken).ConfigureAwait(false);
+                using var resized = ResizeAndPad(fullResolutionFrame.Image, maxWidth, maxHeight);
+                frames.Add(new ThumbnailFrame(resized, times[i]));
             }
 
             if (frames.Count == 0)
@@ -170,6 +183,15 @@ public sealed class VideoProcessingService
             }
 
             return frames;
+        }
+        catch
+        {
+            foreach (var frame in frames)
+            {
+                frame.Dispose();
+            }
+
+            throw;
         }
         finally
         {
@@ -229,14 +251,39 @@ public sealed class VideoProcessingService
         using var process = new Process { StartInfo = startInfo };
         process.Start();
 
-        var stdOutTask = process.StandardOutput.ReadToEndAsync(cancellationToken);
-        var stdErrTask = process.StandardError.ReadToEndAsync(cancellationToken);
+        var stdOutTask = process.StandardOutput.ReadToEndAsync();
+        var stdErrTask = process.StandardError.ReadToEndAsync();
         using var timeoutCts = new CancellationTokenSource(timeout);
         using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutCts.Token);
 
-        await process.WaitForExitAsync(linkedCts.Token);
-        var stdout = await stdOutTask;
-        var stderr = await stdErrTask;
+        try
+        {
+            await process.WaitForExitAsync(linkedCts.Token).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            try
+            {
+                if (!process.HasExited)
+                {
+                    process.Kill(entireProcessTree: true);
+                }
+            }
+            catch
+            {
+                // The process may have exited between the checks.
+            }
+
+            if (cancellationToken.IsCancellationRequested)
+            {
+                throw new OperationCanceledException(cancellationToken);
+            }
+
+            throw new TimeoutException($"{Path.GetFileName(executable)} exceeded the {timeout.TotalSeconds:0}-second timeout.");
+        }
+
+        var stdout = await stdOutTask.ConfigureAwait(false);
+        var stderr = await stdErrTask.ConfigureAwait(false);
 
         if (process.ExitCode != 0)
         {
@@ -252,12 +299,11 @@ public sealed class VideoProcessingService
         string tempDir,
         int index,
         TimeSpan timestamp,
-        string filter,
-        SemaphoreSlim gate,
+        string? filter,
         string?[] outputs,
         CancellationToken cancellationToken)
     {
-        await gate.WaitAsync(cancellationToken);
+        await FrameExtractionGate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
             var output = Path.Combine(tempDir, $"thumb-{index + 1:000}.bmp");
@@ -269,58 +315,91 @@ public sealed class VideoProcessingService
             {
                 await RunProcessAsync(
                     _tools.FfmpegPath,
-                    [
-                        "-y",
-                        "-hide_banner",
-                        "-loglevel", "error",
-                        "-nostdin",
-                        "-ss", fastSeekSeconds.ToString("0.###", CultureInfo.InvariantCulture),
-                        "-hwaccel", "auto",
-                        "-i", filePath,
-                        "-ss", preciseOffset.ToString("0.###", CultureInfo.InvariantCulture),
-                        "-an",
-                        "-sn",
-                        "-dn",
-                        "-frames:v", "1",
-                        "-vf", filter,
-                        "-vsync", "vfr",
-                        "-c:v", "bmp",
-                        output
-                    ],
+                    BuildFrameArguments(filePath, output, fastSeekSeconds, preciseOffset, filter, useHardwareAcceleration: true),
                     TimeSpan.FromSeconds(45),
-                    cancellationToken);
+                    cancellationToken).ConfigureAwait(false);
             }
-            catch
+            catch (Exception) when (!cancellationToken.IsCancellationRequested)
             {
                 await RunProcessAsync(
                     _tools.FfmpegPath,
-                    [
-                        "-y",
-                        "-hide_banner",
-                        "-loglevel", "error",
-                        "-nostdin",
-                        "-ss", fastSeekSeconds.ToString("0.###", CultureInfo.InvariantCulture),
-                        "-i", filePath,
-                        "-ss", preciseOffset.ToString("0.###", CultureInfo.InvariantCulture),
-                        "-an",
-                        "-sn",
-                        "-dn",
-                        "-frames:v", "1",
-                        "-vf", filter,
-                        "-vsync", "vfr",
-                        "-c:v", "bmp",
-                        output
-                    ],
+                    BuildFrameArguments(filePath, output, fastSeekSeconds, preciseOffset, filter, useHardwareAcceleration: false),
                     TimeSpan.FromSeconds(45),
-                    cancellationToken);
+                    cancellationToken).ConfigureAwait(false);
             }
 
             outputs[index] = output;
         }
         finally
         {
-            gate.Release();
+            FrameExtractionGate.Release();
         }
+    }
+
+    private static IReadOnlyList<string> BuildFrameArguments(
+        string filePath,
+        string outputPath,
+        double fastSeekSeconds,
+        double preciseOffset,
+        string? filter,
+        bool useHardwareAcceleration)
+    {
+        var arguments = new List<string>
+        {
+            "-y",
+            "-hide_banner",
+            "-loglevel", "error",
+            "-nostdin",
+            "-ss", fastSeekSeconds.ToString("0.###", CultureInfo.InvariantCulture)
+        };
+
+        if (useHardwareAcceleration)
+        {
+            arguments.Add("-hwaccel");
+            arguments.Add("auto");
+        }
+
+        arguments.AddRange([
+            "-i", filePath,
+            "-ss", preciseOffset.ToString("0.###", CultureInfo.InvariantCulture),
+            "-an",
+            "-sn",
+            "-dn",
+            "-frames:v", "1"
+        ]);
+
+        if (!string.IsNullOrWhiteSpace(filter))
+        {
+            arguments.Add("-vf");
+            arguments.Add(filter);
+        }
+
+        arguments.AddRange([
+            "-vsync", "vfr",
+            "-c:v", "bmp",
+            outputPath
+        ]);
+        return arguments;
+    }
+
+    private static Bitmap ResizeAndPad(Bitmap source, int width, int height)
+    {
+        var targetWidth = Math.Max(width, 1);
+        var targetHeight = Math.Max(height, 1);
+        var result = new Bitmap(targetWidth, targetHeight);
+        using var graphics = Graphics.FromImage(result);
+        graphics.Clear(Color.Black);
+        graphics.CompositingQuality = CompositingQuality.HighQuality;
+        graphics.InterpolationMode = InterpolationMode.HighQualityBicubic;
+        graphics.PixelOffsetMode = PixelOffsetMode.HighQuality;
+
+        var scale = Math.Min(targetWidth / (double)Math.Max(source.Width, 1), targetHeight / (double)Math.Max(source.Height, 1));
+        var drawWidth = Math.Max((int)Math.Round(source.Width * scale), 1);
+        var drawHeight = Math.Max((int)Math.Round(source.Height * scale), 1);
+        var drawX = (targetWidth - drawWidth) / 2;
+        var drawY = (targetHeight - drawHeight) / 2;
+        graphics.DrawImage(source, drawX, drawY, drawWidth, drawHeight);
+        return result;
     }
 
     private sealed class FfprobePayload

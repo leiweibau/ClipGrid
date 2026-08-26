@@ -8,6 +8,11 @@ public static class Localizer
     {
         ["Main.CheckUpdates"] = "Auf Updates prüfen",
         ["Main.NoPreview"] = "Keine Vorschau",
+        ["Main.ClearAll"] = "Liste leeren",
+        ["Main.ExportAll"] = "Alle Kontaktbögen exportieren",
+        ["Main.AddVideos"] = "Videos hinzufügen",
+        ["Main.RemoveVideo"] = "Ausgewähltes Video entfernen",
+        ["Main.OpenSettings"] = "Einstellungen öffnen",
         ["DragDrop.Insert"] = "Einfügen",
         ["Update.Available.Title"] = "Update verfügbar",
         ["Update.Available.Content"] = "Neue Version: {0}\nInstalliert: {1}\n\nMöchtest du die Release-Seite öffnen?",
@@ -69,6 +74,11 @@ public static class Localizer
     {
         ["Main.CheckUpdates"] = "Check for updates",
         ["Main.NoPreview"] = "No preview",
+        ["Main.ClearAll"] = "Clear list",
+        ["Main.ExportAll"] = "Export all contact sheets",
+        ["Main.AddVideos"] = "Add videos",
+        ["Main.RemoveVideo"] = "Remove selected video",
+        ["Main.OpenSettings"] = "Open settings",
         ["DragDrop.Insert"] = "Insert",
         ["Update.Available.Title"] = "Update available",
         ["Update.Available.Content"] = "New version: {0}\nInstalled: {1}\n\nDo you want to open the release page?",
